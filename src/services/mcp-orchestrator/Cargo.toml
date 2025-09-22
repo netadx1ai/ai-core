@@ -1,0 +1,50 @@
+[package]
+name = "mcp-orchestrator"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI-CORE MVP Team"]
+description = "MCP Orchestrator Service for coordinating multi-MCP workflows in AI-CORE platform"
+license = "MIT"
+
+[[bin]]
+name = "mcp-orchestrator"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Logging and tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# HTTP client for MCP communication
+reqwest = { workspace = true }
+
+# Configuration
+clap = { workspace = true }
+
+# Async utilities
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Collections
+dashmap = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"

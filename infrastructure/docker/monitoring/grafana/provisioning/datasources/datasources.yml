@@ -1,0 +1,384 @@
+# Grafana Datasources Configuration for AI-PLATFORM Platform
+# Comprehensive data source setup for all monitoring and database systems
+
+apiVersion: 1
+
+# Delete existing datasources before inserting new ones
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+  - name: Loki
+    orgId: 1
+  - name: Jaeger
+    orgId: 1
+  - name: PostgreSQL
+    orgId: 1
+  - name: ClickHouse
+    orgId: 1
+  - name: MongoDB
+    orgId: 1
+  - name: Redis
+    orgId: 1
+
+datasources:
+  # ================================
+  # PRIMARY MONITORING DATASOURCES
+  # ================================
+
+  # Prometheus - Metrics Collection
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: true
+    version: 1
+    editable: true
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: 2.48.0
+      cacheLevel: 'High'
+      disableRecordingRules: false
+      incrementalQueryOverlapWindow: 10m
+      queryTimeout: 60s
+      timeInterval: 15s
+      customQueryParameters: ''
+    secureJsonData: {}
+    uid: prometheus-uid
+
+  # Loki - Log Aggregation
+  - name: Loki
+    type: loki
+    access: proxy
+    orgId: 1
+    url: http://loki:3100
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: 'jaeger-uid'
+          matcherRegex: 'trace_id=(\w+)'
+          name: 'TraceID'
+          url: '$${__value.raw}'
+        - datasourceUid: 'jaeger-uid'
+          matcherRegex: 'traceID=(\w+)'
+          name: 'TraceID'
+          url: '$${__value.raw}'
+    uid: loki-uid
+
+  # Jaeger - Distributed Tracing
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    orgId: 1
+    url: http://jaeger:16686
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: 'loki-uid'
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags:
+          - key: 'service.name'
+            value: 'service_name'
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{job="${__data.fields.service_name}"} |= "${__data.fields.traceID}"'
+      tracesToMetrics:
+        datasourceUid: 'prometheus-uid'
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags:
+          - key: 'service.name'
+            value: 'service'
+          - key: 'operation'
+            value: 'operation'
+        queries:
+          - name: 'Sample query'
+            query: 'sum(rate(tempo_spanmetrics_latency_bucket{$$__tags}[5m]))'
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      spanBar:
+        type: 'Tag'
+        tag: 'http.status_code'
+    uid: jaeger-uid
+
+  # ================================
+  # DATABASE DATASOURCES
+  # ================================
+
+  # PostgreSQL - ACID Transactions Database
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    orgId: 1
+    url: postgres:5432
+    database: ai_core
+    user: ai_core_user
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 100
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      connMaxLifetime: 14400
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ai_core_password
+    uid: postgresql-uid
+
+  # ClickHouse - Analytics Database
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    orgId: 1
+    url: http://clickhouse:8123
+    basicAuth: true
+    basicAuthUser: ai_core_clickhouse
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      defaultDatabase: analytics
+      port: 8123
+      server: clickhouse
+      username: ai_core_clickhouse
+      protocol: http
+      queryTimeout: 60
+      dialTimeout: 10
+      compress: true
+      secure: false
+      skipTLSVerify: false
+      addCorsHeader: true
+      defaultTable: workflow_events
+      dateTimeType: DateTime
+      dateTime64Type: DateTime64
+      uint64Type: UInt64
+      logs:
+        defaultDatabase: analytics
+        defaultTable: logs
+        otelEnabled: false
+        otelVersion: latest
+        timeColumn: timestamp
+        levelColumn: level
+        messageColumn: message
+    secureJsonData:
+      password: ai_core_clickhouse_password
+    uid: clickhouse-uid
+
+  # MongoDB - Document Database
+  - name: MongoDB
+    type: grafana-mongodb-datasource
+    access: proxy
+    orgId: 1
+    url: mongodb://mongodb:27017
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      database: automation_platform
+      collection: content_items
+      authDatabase: admin
+      authMechanism: SCRAM-SHA-1
+      ssl: false
+      sslInvalidHostNameAllowed: false
+      sslAllowInvalidCertificates: false
+    secureJsonData:
+      username: ai_core_admin
+      password: ai_core_mongo_password
+    uid: mongodb-uid
+
+  # Redis - Cache Database
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    orgId: 1
+    url: redis://redis:6379
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      client: standalone
+      poolSize: 5
+      timeout: 10
+      pingInterval: 0
+      pipelineWindow: 0
+      acl:
+        enabled: false
+      tls:
+        enabled: false
+        skipTLSVerify: false
+      sentinel:
+        enabled: false
+      cluster:
+        enabled: false
+    secureJsonData: {}
+    uid: redis-uid
+
+  # ================================
+  # BUSINESS INTELLIGENCE DATASOURCES
+  # ================================
+
+  # ClickHouse for Real-time Analytics
+  - name: ClickHouse Analytics
+    type: grafana-clickhouse-datasource
+    access: proxy
+    orgId: 1
+    url: http://clickhouse:8123
+    basicAuth: true
+    basicAuthUser: ai_core_clickhouse
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      defaultDatabase: analytics
+      defaultTable: workflow_events
+      server: clickhouse
+      port: 8123
+      protocol: http
+      username: ai_core_clickhouse
+      compress: true
+      queryTimeout: 60
+      dialTimeout: 10
+      secure: false
+      skipTLSVerify: false
+      addCorsHeader: true
+      dateTimeType: DateTime64
+      uint64Type: UInt64
+      logs:
+        defaultDatabase: analytics
+        defaultTable: application_logs
+        timeColumn: timestamp
+        levelColumn: level
+        messageColumn: message
+        otelEnabled: true
+        otelVersion: latest
+    secureJsonData:
+      password: ai_core_clickhouse_password
+    uid: clickhouse-analytics-uid
+
+  # PostgreSQL for Operational Data
+  - name: PostgreSQL Operations
+    type: postgres
+    access: proxy
+    orgId: 1
+    url: postgres:5432
+    database: ai_core
+    user: ai_core_user
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 50
+      maxIdleConns: 25
+      connMaxLifetime: 7200
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ai_core_password
+    uid: postgresql-operations-uid
+
+  # ================================
+  # EXTERNAL MONITORING DATASOURCES
+  # ================================
+
+  # Node Exporter Metrics (System Monitoring)
+  - name: Node Exporter
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: jaeger-uid
+      customQueryParameters: 'job=node-exporter'
+    uid: node-exporter-uid
+
+  # cAdvisor Metrics (Container Monitoring)
+  - name: cAdvisor
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'job=cadvisor'
+    uid: cadvisor-uid
+
+  # ================================
+  # TEST AND DEVELOPMENT DATASOURCES
+  # ================================
+
+  # TestData for Dashboard Development
+  - name: TestData DB
+    type: testdata
+    orgId: 1
+    isDefault: false
+    version: 1
+    editable: true
+    access: proxy
+    jsonData: {}
+    uid: testdata-uid
+
+  # Mixed Datasource for Complex Queries
+  - name: Mixed
+    type: mixed
+    orgId: 1
+    isDefault: false
+    version: 1
+    editable: false
+    access: proxy
+    jsonData: {}
+    uid: mixed-uid
+
+  # ================================
+  # ALERTING DATASOURCE
+  # ================================
+
+  # Alertmanager Integration
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    orgId: 1
+    url: http://alertmanager:9093
+    basicAuth: false
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: true
+      httpMethod: POST
+    uid: alertmanager-uid

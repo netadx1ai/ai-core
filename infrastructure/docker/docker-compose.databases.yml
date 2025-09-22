@@ -1,0 +1,327 @@
+# Docker Compose configuration for AI-PLATFORM database services
+# This file provides a complete development environment with all four database types
+
+version: '3.8'
+
+services:
+  # PostgreSQL - ACID transactions, user management, billing (20% of data)
+  postgres:
+    image: postgres:15-alpine
+    container_name: AI-PLATFORM-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_core
+      POSTGRES_USER: ai_core_user
+      POSTGRES_PASSWORD: ai_core_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+      - ./postgres/conf:/etc/postgresql/conf.d
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c pg_stat_statements.save=on
+      -c log_statement=all
+      -c log_duration=on
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_core_user -d ai_core"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # MongoDB - Flexible document storage, content, campaigns (25% of data)
+  mongodb:
+    image: mongo:7.0
+    container_name: AI-PLATFORM-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ai_core_admin
+      MONGO_INITDB_ROOT_PASSWORD: ai_core_mongo_password
+      MONGO_INITDB_DATABASE: automation_platform
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./mongodb/init:/docker-entrypoint-initdb.d
+      - ./mongodb/conf/mongod.conf:/etc/mongod.conf
+    command: mongod --config /etc/mongod.conf
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/automation_platform --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # ClickHouse - Analytics, time-series data, metrics (50% of data)
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8-alpine
+    container_name: AI-PLATFORM-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: ai_core_clickhouse
+      CLICKHOUSE_PASSWORD: ai_core_clickhouse_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native interface
+      - "9009:9009"  # Native secure interface
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./clickhouse/config:/etc/clickhouse-server/config.d
+      - ./clickhouse/users:/etc/clickhouse-server/users.d
+      - ./clickhouse/init:/docker-entrypoint-initdb.d
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # Redis - Caching, sessions, rate limiting (5% of data)
+  redis:
+    image: redis:7-alpine
+    container_name: AI-PLATFORM-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis/conf/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # Redis Commander - Web UI for Redis
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: AI-PLATFORM-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: redis_admin_password
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - AI-PLATFORM-network
+
+  # pgAdmin - PostgreSQL administration
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: AI-PLATFORM-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@aicore.local
+      PGADMIN_DEFAULT_PASSWORD: pgadmin_password
+      PGADMIN_LISTEN_PORT: 80
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - postgres
+    networks:
+      - AI-PLATFORM-network
+
+  # Mongo Express - MongoDB web interface
+  mongo-express:
+    image: mongo-express:latest
+    container_name: AI-PLATFORM-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ai_core_admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ai_core_mongo_password
+      ME_CONFIG_MONGODB_URL: mongodb://ai_core_admin:ai_core_mongo_password@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: mongo_admin_password
+    ports:
+      - "8082:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - AI-PLATFORM-network
+
+  # ClickHouse Tabix - ClickHouse web interface
+  tabix:
+    image: spoonest/clickhouse-tabix-web-client:latest
+    container_name: AI-PLATFORM-tabix
+    restart: unless-stopped
+    ports:
+      - "8083:80"
+    depends_on:
+      - clickhouse
+    networks:
+      - AI-PLATFORM-network
+
+  # Database backup service
+  db-backup:
+    image: alpine:latest
+    container_name: AI-PLATFORM-db-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ai_core
+      POSTGRES_USER: ai_core_user
+      POSTGRES_PASSWORD: ai_core_password
+      MONGO_HOST: mongodb
+      MONGO_DB: automation_platform
+      MONGO_USER: ai_core_admin
+      MONGO_PASSWORD: ai_core_mongo_password
+      BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+      BACKUP_RETENTION_DAYS: 7
+    volumes:
+      - backup_data:/backups
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh
+    command: >
+      sh -c "
+        apk add --no-cache postgresql-client mongodb-tools dcron &&
+        chmod +x /usr/local/bin/backup.sh &&
+        echo '0 2 * * * /usr/local/bin/backup.sh' | crontab - &&
+        crond -f
+      "
+    depends_on:
+      - postgres
+      - mongodb
+    networks:
+      - AI-PLATFORM-network
+
+  # Database monitoring with Prometheus exporters
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: AI-PLATFORM-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://ai_core_user:ai_core_password@postgres:5432/ai_core?sslmode=disable"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+    ports:
+      - "9187:9187"
+    volumes:
+      - ./monitoring/postgres-exporter/queries.yaml:/etc/postgres_exporter/queries.yaml
+    depends_on:
+      - postgres
+    networks:
+      - AI-PLATFORM-network
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:latest
+    container_name: AI-PLATFORM-mongodb-exporter
+    restart: unless-stopped
+    environment:
+      MONGODB_URI: "mongodb://ai_core_admin:ai_core_mongo_password@mongodb:27017"
+    ports:
+      - "9216:9216"
+    command:
+      - '--mongodb.uri=mongodb://ai_core_admin:ai_core_mongo_password@mongodb:27017'
+      - '--mongodb.collstats-colls=automation_platform.content_items,automation_platform.campaigns'
+    depends_on:
+      - mongodb
+    networks:
+      - AI-PLATFORM-network
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: AI-PLATFORM-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    networks:
+      - AI-PLATFORM-network
+
+# Persistent volumes
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/postgres
+  mongodb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/mongodb
+  mongodb_config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/mongodb_config
+  clickhouse_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/clickhouse
+  clickhouse_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/clickhouse_logs
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/redis
+  pgadmin_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/pgadmin
+  backup_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/backups
+
+# Network configuration
+networks:
+  AI-PLATFORM-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

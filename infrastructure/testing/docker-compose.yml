@@ -1,0 +1,587 @@
+# AI-PLATFORM Testing Infrastructure - Docker Compose
+# Version: 1.0
+# Created: 2025-01-11
+# Status: ACTIVE - Implementation Phase
+# Architect: architect_agent
+# Classification: P0 Critical Path Foundation
+
+version: '3.8'
+
+networks:
+  testing-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgresql-data:
+    driver: local
+  clickhouse-data:
+    driver: local
+  mongodb-data:
+    driver: local
+  redis-data:
+    driver: local
+  test-artifacts:
+    driver: local
+  test-reports:
+    driver: local
+
+services:
+  # ===== DATABASE SERVICES =====
+
+  # PostgreSQL - Primary test database
+  postgresql:
+    image: postgres:15-alpine
+    container_name: AI-PLATFORM-test-postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_core_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_MULTIPLE_DATABASES: "test_auth,test_workflows,test_integration"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.10
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d ai_core_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # ClickHouse - Analytics and metrics database
+  clickhouse:
+    image: clickhouse/clickhouse-server:23-alpine
+    container_name: AI-PLATFORM-test-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: test_analytics
+      CLICKHOUSE_USER: test_user
+      CLICKHOUSE_PASSWORD: test_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8124:8123"
+      - "9001:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./scripts/init-clickhouse.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.11
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # MongoDB - Document storage for test configurations
+  mongodb:
+    image: mongo:7-jammy
+    container_name: AI-PLATFORM-test-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: test_user
+      MONGO_INITDB_ROOT_PASSWORD: test_password
+      MONGO_INITDB_DATABASE: test_documents
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.12
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Redis - Cache and session management
+  redis:
+    image: redis:7-alpine
+    container_name: AI-PLATFORM-test-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass test_password
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.13
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+        reservations:
+          memory: 256M
+          cpus: '0.125'
+
+  # ===== MESSAGE QUEUE SERVICES =====
+
+  # Apache Kafka - Event streaming for test coordination
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: AI-PLATFORM-test-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.20
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: AI-PLATFORM-test-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    ports:
+      - "9093:9093"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.21
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # ===== CORE TESTING SERVICES =====
+
+  # Test Coordinator Service
+  test-coordinator:
+    build:
+      context: ../../
+      dockerfile: infrastructure/testing/dockerfiles/Dockerfile.test-coordinator
+    container_name: AI-PLATFORM-test-coordinator
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=postgresql://test_user:test_password@postgresql:5432/ai_core_test
+      - REDIS_URL=redis://:test_password@redis:6379
+      - KAFKA_BROKERS=kafka:9092
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - MONGODB_URL=mongodb://test_user:test_password@mongodb:27017/test_documents
+      - SERVICE_PORT=8100
+      - ENVIRONMENT=testing
+    ports:
+      - "8100:8100"
+    volumes:
+      - test-artifacts:/app/artifacts
+      - test-reports:/app/reports
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.30
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Playwright E2E Service
+  playwright-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/testing/dockerfiles/Dockerfile.playwright
+    container_name: AI-PLATFORM-playwright-service
+    restart: unless-stopped
+    depends_on:
+      test-coordinator:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=testing
+      - TEST_COORDINATOR_URL=http://test-coordinator:8100
+      - HEADLESS=true
+      - SCREENSHOTS_ENABLED=true
+      - VIDEO_RECORDING=true
+      - TRACE_COLLECTION=true
+      - BROWSER_TIMEOUT=30000
+      - MAX_WORKERS=4
+    ports:
+      - "8101:8101"
+    volumes:
+      - test-artifacts:/app/test-results
+      - /dev/shm:/dev/shm
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.31
+    shm_size: '2gb'
+    security_opt:
+      - seccomp:unconfined
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # API Testing Service
+  api-test-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/testing/dockerfiles/Dockerfile.api-tests
+    container_name: AI-PLATFORM-api-test-service
+    restart: unless-stopped
+    depends_on:
+      test-coordinator:
+        condition: service_healthy
+    environment:
+      - RUST_LOG=info
+      - TEST_COORDINATOR_URL=http://test-coordinator:8100
+      - API_BASE_URL=http://api-gateway:8000
+      - MAX_CONCURRENT_REQUESTS=20
+      - REQUEST_TIMEOUT=30000
+    ports:
+      - "8102:8102"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.32
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Performance Testing Service
+  performance-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/testing/dockerfiles/Dockerfile.performance
+    container_name: AI-PLATFORM-performance-service
+    restart: unless-stopped
+    depends_on:
+      test-coordinator:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=testing
+      - TEST_COORDINATOR_URL=http://test-coordinator:8100
+      - TARGET_BASE_URL=http://api-gateway:8000
+      - MAX_VIRTUAL_USERS=1000
+      - RAMP_UP_DURATION=60s
+      - TEST_DURATION=300s
+    ports:
+      - "8103:8103"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.33
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # Test Data Service
+  test-data-service:
+    build:
+      context: ../../
+      dockerfile: infrastructure/testing/dockerfiles/Dockerfile.test-data
+    container_name: AI-PLATFORM-test-data-service
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=postgresql://test_user:test_password@postgresql:5432/ai_core_test
+      - MONGODB_URL=mongodb://test_user:test_password@mongodb:27017/test_documents
+      - SERVICE_PORT=8104
+    ports:
+      - "8104:8104"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.34
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  # ===== MONITORING AND OBSERVABILITY =====
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: AI-PLATFORM-test-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/alert-rules.yml:/etc/prometheus/alert-rules.yml
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.40
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: AI-PLATFORM-test-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./config/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./dashboards:/var/lib/grafana/dashboards
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.41
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  # Jaeger - Distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: AI-PLATFORM-test-jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16687:16686"
+      - "14269:14268"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.42
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  # ===== SUPPORT SERVICES =====
+
+  # Nginx - Load balancer and reverse proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: AI-PLATFORM-test-nginx
+    restart: unless-stopped
+    depends_on:
+      - test-coordinator
+      - playwright-service
+      - api-test-service
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.50
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.125'
+
+  # MinIO - Object storage for test artifacts
+  minio:
+    image: minio/minio:RELEASE.2023-10-25T06-33-25Z
+    container_name: AI-PLATFORM-test-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9090"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    volumes:
+      - ./data/minio:/data
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.51
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+
+  # ===== DEVELOPMENT AND DEBUG SERVICES =====
+
+  # Adminer - Database administration
+  adminer:
+    image: adminer:4.8.1
+    container_name: AI-PLATFORM-test-adminer
+    restart: unless-stopped
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgresql
+    ports:
+      - "8081:8080"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.60
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.125'
+
+  # Mailhog - Email testing
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: AI-PLATFORM-test-mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.61
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.125'
+
+  # ===== AI ENHANCEMENT SERVICES =====
+
+  # AI Test Generator Service (placeholder for future implementation)
+  ai-test-generator:
+    build:
+      context: ../../
+      dockerfile: infrastructure/testing/dockerfiles/Dockerfile.ai-generator
+    container_name: AI-PLATFORM-ai-test-generator
+    restart: unless-stopped
+    depends_on:
+      - test-coordinator
+    environment:
+      - PYTHON_ENV=testing
+      - TEST_COORDINATOR_URL=http://test-coordinator:8100
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - MODEL_NAME=gpt-4
+      - MAX_SCENARIOS_PER_REQUEST=10
+    ports:
+      - "8105:8105"
+    networks:
+      testing-network:
+        ipv4_address: 172.20.0.70
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+# ===== DOCKER COMPOSE OVERRIDES =====
+
+# Development override example
+# To use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Create docker-compose.dev.yml with:
+# version: '3.8'
+# services:
+#   test-coordinator:
+#     environment:
+#       - RUST_LOG=debug
+#     volumes:
+#       - ../../target:/app/target
+#   playwright-service:
+#     environment:
+#       - HEADLESS=false
+#       - DEBUG=true
+
+# Production override example
+# Create docker-compose.prod.yml with resource limits, security settings, etc.

@@ -1,0 +1,197 @@
+[workspace]
+resolver = "2"
+members = [
+    "src/api-gateway",
+    "src/shared",
+    "src/security",
+    "src/database",
+    "src/services/intent-parser",
+    "src/services/mcp-manager",
+    "src/services/federation",
+    "src/services/file-storage",
+    "src/services/event-streaming",
+    "src/services/notification",
+    "src/services/data-processing",
+    "src/services/service-discovery",
+    "src/services/integration",
+    "src/services/sre-monitor",
+    "src/services/demo-content-mcp",
+    "src/services/text-processing-mcp",
+    "src/services/image-generation-mcp",
+    "src/services/mcp-orchestrator",
+    "src/qa-agent",
+    "src/integrations/database-security",
+    "src/demo",
+
+]
+exclude = [
+    "target",
+    "src/ui",
+    "infrastructure",
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2021"
+authors = ["AI-PLATFORM Platform Team <platform@AI-PLATFORM.dev>"]
+license = "MIT"
+repository = "https://github.com/AI-PLATFORM/platform"
+homepage = "https://AI-PLATFORM.dev"
+documentation = "https://docs.AI-PLATFORM.dev"
+keywords = ["automation", "ai", "microservices", "rust", "platform"]
+categories = ["web-programming", "api-bindings", "development-tools"]
+
+[workspace.dependencies]
+# Core async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# Web framework
+axum = { version = "0.7", features = ["macros", "tower-log", "ws"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-br", "compression-gzip", "request-id"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+bincode = "1.3"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Time and identifiers
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Validation
+validator = { version = "0.16", features = ["derive"] }
+regex = "1.10"
+
+# Authentication & Security
+jsonwebtoken = "9.2"
+argon2 = "0.5"
+bcrypt = "0.15"
+
+# Database drivers
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate", "macros"] }
+mongodb = { version = "2.8", features = ["tokio-runtime"] }
+bson = { version = "2.9", features = ["chrono-0_4"] }
+clickhouse = { version = "0.12", features = ["lz4", "inserter"] }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager", "streams", "json"] }
+
+# Connection pooling
+deadpool = "0.10"
+deadpool-postgres = "0.12"
+deadpool-redis = "0.14"
+
+# Configuration
+config = "0.14"
+clap = { version = "4.4", features = ["derive", "env"] }
+dotenvy = "0.15"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = { version = "0.21", features = ["trace"] }
+opentelemetry_sdk = { version = "0.21", features = ["trace"] }
+opentelemetry-jaeger = "0.20"
+
+# Metrics
+prometheus = { version = "0.13", features = ["process"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# HTTP Client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Rate limiting
+governor = "0.6"
+
+# System utilities
+num_cpus = "1.16"
+bytes = "1.5"
+
+# Compression
+lz4_flex = "0.11"
+zstd = "0.13"
+
+# Event streaming dependencies
+rdkafka = { version = "0.36", features = ["cmake-build", "tokio"] }
+lapin = "2.3"
+crossbeam = "0.8"
+dashmap = "5.5"
+ahash = "0.8"
+parking_lot = "0.12"
+once_cell = "1.19"
+
+# Development dependencies
+tokio-test = "0.4"
+mockall = "0.12"
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+wiremock = "0.5"
+testcontainers = "0.15"
+pretty_assertions = "1.4"
+tempfile = "3.8"
+hdrhistogram = "7.5"
+goose = "0.17"
+rstest = "0.18"
+proptest = "1.4"
+quickcheck = "1.0"
+fake = "2.9"
+serial_test = "3.0"
+test-log = "0.2"
+tracing-test = "0.2"
+jsonpath_lib = "0.3"
+http = "1.0"
+instant = "0.1"
+portpicker = "0.1"
+
+# Shared crates
+AI-PLATFORM-shared = { path = "src/shared" }
+AI-PLATFORM-database = { path = "src/database" }
+AI-PLATFORM-security = { path = "src/security" }
+ai-core-shared = { path = "src/shared" }
+ai-core-database = { path = "src/database" }
+ai-core-security = { path = "src/security" }
+
+[profile.dev]
+debug = true
+opt-level = 0
+overflow-checks = true
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
+
+[profile.test]
+debug = true
+opt-level = 1
+overflow-checks = true
+
+[profile.bench]
+opt-level = 3
+debug = false
+lto = true
+codegen-units = 1
+
+# Patch section for overriding dependencies if needed
+[patch.crates-io]
+
+# Build metadata
+[workspace.metadata]
+msrv = "1.75.0"  # Minimum Supported Rust Version
+
+[workspace.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

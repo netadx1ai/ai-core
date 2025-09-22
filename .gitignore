@@ -1,0 +1,177 @@
+# Created by AI-PLATFORM Integration Agent
+
+# --- General ---
+# Environment variables - Do not commit secrets
+.env*
+!.env.example
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+._*
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Rust ---
+# Build artifacts, profiles, and binaries
+target/
+**/target/
+*/target/
+src/*/target/
+
+# Generated documentation
+/doc/
+
+# Backup files created by some editors
+*.rs.bk
+
+# For applications, it's strongly recommended to commit Cargo.lock to ensure
+# reproducible builds across all environments. For libraries, it's often ignored.
+# This is an application, so Cargo.lock should be checked in.
+# Cargo.lock
+
+# --- Frontend (React/Tauri/Node.js) ---
+# Dependencies
+/src/ui/node_modules/
+
+# Build output
+/src/ui/dist/
+/src/ui/dist-ssr/
+/src/ui/coverage/
+
+# Tauri-specific build artifacts
+# This prevents duplicating the main /target/ ignore but is more specific
+/src/ui/src-tauri/target/
+/src/ui/src-tauri/Cargo.lock
+/src/ui/src-tauri/gen/
+/src/ui/src-tauri/tauri.conf.json.bk
+
+# Local development environment files
+/src/ui/*.local
+
+# --- IDE / Editor ---
+# JetBrains IDEs (IntelliJ, CLion, RustRover, etc.)
+.idea/
+
+# Visual Studio Code
+.vscode/*
+# It's often useful to share recommended extensions and workspace settings
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# --- Infrastructure ---
+# Terraform state files - These can contain sensitive information
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# --- AI-CORE Specific ---
+dev-works/
+# Development tracking files (keep structure but ignore temporary files)
+/dev-works/sessions/ACTIVE_*
+/dev-works/tasks/WIP_*
+/dev-works/sessions/COMPLETED-*
+/dev-works/sessions/HOUR-*
+/dev-works/archives/
+
+# Dev-works organization - maintain clean structure
+/dev-works/continuity-prompts/
+/dev-works/fixes/
+/dev-works/demos/
+/dev-works/temp/
+/dev-works/scratch/
+/dev-works/backup/
+
+# Keep permanent dev-works directories but ignore temp content
+/dev-works/reports/*.tmp
+/dev-works/reports/temp-*
+/dev-works/reports/draft-*
+/dev-works/summaries/*.tmp
+/dev-works/summaries/temp-*
+/dev-works/summaries/draft-*
+/dev-works/logs/*.log
+/dev-works/logs/debug-*
+/dev-works/logs/trace-*
+
+# Assets and temporary files
+/assets/*.zip
+/assets/*.html
+/assets/data/*.json
+
+# External dependencies
+/external-mcps/
+
+# Cache and temporary directories
+.cache/
+.kiro/
+.ropeproject/
+
+# Federation and runtime files
+.federation-pid
+*.pid
+
+# --- SECURITY & PRIVACY ---
+# Environment files with sensitive data
+.env
+.env.*
+!.env.example
+
+# API Keys and secrets
+*secret*
+*password*
+*token*
+*key*
+!*.key.example
+
+# Development logs and debugging
+logs/
+*.log.*
+debug-*
+trace-*
+
+# Development reports and summaries
+*COMPLETION*
+*SUMMARY*
+*REPORT*
+*summary*
+*report*
+
+# Personal and private files
+*private*
+*personal*
+*draft*
+*DRAFT*
+
+# Session recordings and demos
+*.recording
+*.demo
+demo-logs/
+test-logs/
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# IDE and editor temporary files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Database dumps and exports
+*.sql
+*.dump
+exports/

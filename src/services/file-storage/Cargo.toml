@@ -1,0 +1,123 @@
+[package]
+name = "file-storage-service"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI-CORE Team"]
+description = "Comprehensive file storage service with S3/MinIO, media processing, and virus scanning"
+license = "MIT"
+
+[[bin]]
+name = "file-storage"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { workspace = true, features = ["multipart"] }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+mongodb = { workspace = true }
+bson = { workspace = true }
+
+# Redis
+redis = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+bytes = { workspace = true }
+
+# File processing and media
+image = { version = "0.24", features = ["png", "jpeg", "webp", "gif"] }
+
+# S3/Object storage
+aws-sdk-s3 = "1.12"
+aws-config = "1.1"
+aws-types = "1.1"
+rusoto_core = "0.48"
+rusoto_s3 = "0.48"
+
+# File type detection
+infer = "0.15"
+mime = "0.3"
+mime_guess = "2.0"
+
+# Compression
+flate2 = "1.0"
+zip = "0.6"
+
+# Encryption
+aes-gcm = "0.10"
+rand = "0.8"
+
+# Virus scanning integration (stub implementation for now)
+
+# Logging and tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+clap = { workspace = true }
+
+# Authentication
+jsonwebtoken = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# Metrics
+prometheus = { workspace = true }
+
+# Async utilities
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# File system utilities
+tempfile = { workspace = true }
+walkdir = "2.4"
+
+# Hashing
+sha2 = "0.10"
+blake3 = "1.5"
+
+# URL encoding/decoding
+urlencoding = "2.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.6"
+tempfile = { workspace = true }
+pretty_assertions = { workspace = true }
+testcontainers = { workspace = true }
+
+[features]
+default = ["image-processing", "virus-scanning"]
+image-processing = []
+video-processing = []
+virus-scanning = []
+encryption = []
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true

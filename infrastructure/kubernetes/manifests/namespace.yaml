@@ -1,0 +1,393 @@
+# AI-PLATFORM Kubernetes Namespace and Resource Quotas
+# Modern 2025 Kubernetes configuration with security and resource management
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: AI-PLATFORM
+  labels:
+    name: AI-PLATFORM
+    environment: development
+    version: v1.0.0
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    description: "AI-PLATFORM Intelligent Automation Platform"
+    contact: "platform@AI-PLATFORM.dev"
+    documentation: "https://docs.AI-PLATFORM.dev"
+    repository: "https://github.com/AI-PLATFORM/platform"
+
+---
+# Network Policy - Default Deny All
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+# Network Policy - Allow DNS Resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-access
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# Resource Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: AI-PLATFORM-quota
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: resource-quota
+spec:
+  hard:
+    # Compute Resources
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+
+    # Storage Resources
+    requests.storage: 200Gi
+    persistentvolumeclaims: "20"
+
+    # Object Counts
+    pods: "100"
+    services: "20"
+    secrets: "50"
+    configmaps: "50"
+    replicationcontrollers: "0"
+    deployments.apps: "20"
+    statefulsets.apps: "10"
+    daemonsets.apps: "5"
+    jobs.batch: "50"
+    cronjobs.batch: "10"
+
+    # Network Resources
+    services.loadbalancers: "5"
+    services.nodeports: "10"
+
+---
+# Limit Range
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: AI-PLATFORM-limits
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: limit-range
+spec:
+  limits:
+  # Container Limits
+  - type: Container
+    default:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 100Mi
+    max:
+      cpu: 4
+      memory: 8Gi
+      ephemeral-storage: 10Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+      ephemeral-storage: 50Mi
+
+  # Pod Limits
+  - type: Pod
+    max:
+      cpu: 8
+      memory: 16Gi
+      ephemeral-storage: 20Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+      ephemeral-storage: 50Mi
+
+  # PVC Limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: 100Gi
+    min:
+      storage: 1Gi
+
+---
+# Pod Security Policy (for clusters supporting it)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: AI-PLATFORM-psp
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: pod-security-policy
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+
+---
+# Service Account for AI-PLATFORM applications
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: AI-PLATFORM-app
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: service-account
+  annotations:
+    description: "Service account for AI-PLATFORM application pods"
+automountServiceAccountToken: false
+
+---
+# Service Account for AI-PLATFORM monitoring
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: AI-PLATFORM-monitoring
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: service-account
+  annotations:
+    description: "Service account for AI-PLATFORM monitoring components"
+automountServiceAccountToken: true
+
+---
+# Role for application access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: AI-PLATFORM-app-role
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+
+---
+# RoleBinding for application
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: AI-PLATFORM-app-binding
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: AI-PLATFORM-app
+  namespace: AI-PLATFORM
+roleRef:
+  kind: Role
+  name: AI-PLATFORM-app-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Role for monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: AI-PLATFORM-monitoring-role
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics"]
+  verbs: ["get", "list", "watch"]
+
+---
+# RoleBinding for monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: AI-PLATFORM-monitoring-binding
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: AI-PLATFORM-monitoring
+  namespace: AI-PLATFORM
+roleRef:
+  kind: Role
+  name: AI-PLATFORM-monitoring-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Priority Class for critical components
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: AI-PLATFORM-critical
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: priority-class
+value: 1000
+globalDefault: false
+description: "Priority class for critical AI-PLATFORM components"
+
+---
+# Priority Class for regular components
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: AI-PLATFORM-normal
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: priority-class
+value: 500
+globalDefault: false
+description: "Priority class for regular AI-PLATFORM components"
+
+---
+# Pod Disruption Budget for API Gateway
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: AI-PLATFORM-api-gateway-pdb
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: pod-disruption-budget
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: AI-PLATFORM-api-gateway
+
+---
+# Pod Disruption Budget for databases
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: AI-PLATFORM-database-pdb
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: pod-disruption-budget
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      tier: database
+
+---
+# Horizontal Pod Autoscaler for API Gateway
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: AI-PLATFORM-api-gateway-hpa
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-platform
+    app.kubernetes.io/component: hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: AI-PLATFORM-api-gateway
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 60

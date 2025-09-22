@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT sc.slo_id, sc.current_percentage, sc.target_percentage,\n                   s.name, s.service_name, s.metric_name, s.threshold_value,\n                   sc.calculated_at\n            FROM slo_calculations sc\n            JOIN slos s ON sc.slo_id = s.id\n            WHERE sc.compliance = false\n            AND sc.calculated_at > NOW() - INTERVAL '1 hour'\n            AND s.status = 'active'\n            ORDER BY sc.calculated_at DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slo_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "current_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "target_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "metric_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "threshold_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "calculated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "f225fcbc3630941fd9f78c35069139a604a17b5988f3f586af321f2cae421d13"
+}

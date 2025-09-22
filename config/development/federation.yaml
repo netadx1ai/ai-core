@@ -1,0 +1,105 @@
+# AI-CORE Federation Service Configuration
+# Production-ready configuration for MVP demo
+
+server:
+    host: "127.0.0.1"
+    port: 8801
+    requestTimeout: 30
+    keepAliveTimeout: 75
+    maxRequestSize: 16777216
+    enableCors: true
+    corsOrigins:
+        - "http://localhost:3000"
+        - "http://localhost:8080"
+        - "http://localhost:8801"
+    shutdownTimeout: 30
+
+database:
+    url: "postgresql://postgres:postgres@localhost:5432/ai_core_dev"
+    maxConnections: 10
+    minConnections: 2
+    connectTimeout: 30
+    queryTimeout: 30
+    idleTimeout: 600
+    logQueries: false
+    autoMigrate: true
+
+redis:
+    url: "redis://localhost:6379"
+    maxConnections: 10
+    minConnections: 2
+    connectTimeout: 10
+    commandTimeout: 30
+    idleTimeout: 300
+    enableCluster: false
+    keyPrefix: "federation:"
+
+temporal:
+    hostPort: "localhost:7233"
+    namespace: "ai-core-dev"
+    taskQueue: "federation-tasks"
+    workflowTimeout: 3600
+    activityTimeout: 300
+    enabled: false
+
+proxy:
+    enabled: true
+    maxConcurrentConnections: 100
+    connectionTimeout: 30
+    requestTimeout: 60
+    retryAttempts: 3
+    retryDelay: 1
+    circuitBreakerThreshold: 5
+    circuitBreakerTimeout: 30
+
+auth:
+    jwtSecret: "mvp-demo-jwt-secret-key-change-in-production"
+    jwtExpirySeconds: 3600
+    apiKeyEnabled: true
+    sessionTimeout: 86400
+    maxFailedAttempts: 5
+    lockoutDuration: 900
+
+costOptimization:
+    enabled: true
+    budgetAlerts: true
+    costTracking: true
+    optimizationStrategies:
+        - "cost_aware_routing"
+        - "provider_fallback"
+    maxMonthlyCost: 1000.0
+    alertThresholds:
+        - 0.8
+        - 0.9
+        - 0.95
+
+telemetry:
+    enabled: true
+    endpoint: "http://localhost:4317"
+    serviceName: "federation-service"
+    serviceVersion: "1.0.0"
+    environment: "development"
+    tracingEnabled: false
+    metricsEnabled: true
+    logsEnabled: true
+    exportInterval: 30
+
+rateLimiting:
+    enabled: true
+    requestsPerMinute: 100
+    burstSize: 20
+    windowSize: 60
+    excludePaths:
+        - "/health"
+        - "/metrics"
+
+features:
+    healthChecks: true
+    metrics: true
+    schemaValidation: true
+    contentCaching: true
+    requestLogging: true
+    errorReporting: true
+    performanceMonitoring: true
+
+environment: "development"

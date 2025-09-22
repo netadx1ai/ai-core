@@ -1,0 +1,18 @@
+# Coverage directory
+coverage/
+
+# Build outputs
+dist/
+dist-ssr/
+
+# Dependencies
+node_modules/
+
+# Tauri build outputs
+src-tauri/target/
+
+# Generated files
+*.d.ts
+
+# Test coverage reports
+*.lcov

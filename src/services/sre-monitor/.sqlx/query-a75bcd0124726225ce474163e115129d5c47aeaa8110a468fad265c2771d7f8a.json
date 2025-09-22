@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, name, description, service_name, metric_name, target_percentage,\n                   time_window, threshold_value, operator, status, created_at, updated_at, metadata\n            FROM slos\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "metric_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "target_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "time_window",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "threshold_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "operator",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a75bcd0124726225ce474163e115129d5c47aeaa8110a468fad265c2771d7f8a"
+}

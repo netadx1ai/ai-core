@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM error_budgets WHERE last_updated < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4d12e71bd19b7c90ceb44cf081d1d2345b214ee771936efa1c6092db75f78078"
+}

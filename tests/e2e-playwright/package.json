@@ -1,0 +1,91 @@
+{
+    "name": "@ai-core/e2e-tests",
+    "version": "1.0.0",
+    "description": "AI-CORE End-to-End Testing Suite with Multiple Runs",
+    "type": "module",
+    "scripts": {
+        "install": "npx playwright install",
+        "test": "playwright test",
+        "test:headed": "playwright test --headed",
+        "test:debug": "playwright test --debug",
+        "test:multiple": "npm run test:stability && npm run test:load && npm run test:regression",
+        "test:stability": "for i in {1..5}; do echo \"=== Stability Run $i/5 ===\"; playwright test --config=stability.config.js || exit 1; done",
+        "test:load": "for i in {1..3}; do echo \"=== Load Test Run $i/3 ===\"; playwright test --config=load.config.js || exit 1; done",
+        "test:regression": "for i in {1..10}; do echo \"=== Regression Run $i/10 ===\"; playwright test --config=regression.config.js || exit 1; done",
+        "test:smoke": "playwright test --grep=\"@smoke\"",
+        "test:critical": "playwright test --grep=\"@critical\"",
+        "test:api": "playwright test --grep=\"@api\"",
+        "test:ui": "playwright test --grep=\"@ui\"",
+        "test:integration": "playwright test --grep=\"@integration\"",
+        "test:parallel": "playwright test --workers=4",
+        "test:serial": "playwright test --workers=1",
+        "test:report": "playwright show-report",
+        "test:html-report": "npx playwright show-report ./test-results/html-report",
+        "test:json-report": "playwright test --reporter=json --output-dir=./test-results/json",
+        "test:ci": "npm run test:multiple && npm run generate-report",
+        "test:build-validation": "npm run test:smoke && npm run test:critical && npm run test:regression",
+        "generate-report": "node scripts/generate-comprehensive-report.js",
+        "start-services": "node scripts/start-test-services.js",
+        "stop-services": "node scripts/stop-test-services.js",
+        "health-check": "node scripts/health-check.js",
+        "setup-test-env": "npm run start-services && npm run health-check",
+        "teardown-test-env": "npm run stop-services",
+        "test:full-cycle": "npm run setup-test-env && npm run test:multiple && npm run generate-report && npm run teardown-test-env"
+    },
+    "dependencies": {
+        "@playwright/test": "1.30.0",
+        "axios": "^1.4.0",
+        "dotenv": "^16.0.0",
+        "winston": "^3.8.0",
+        "uuid": "^9.0.0",
+        "lodash": "^4.17.21",
+        "moment": "^2.29.4",
+        "fs-extra": "^10.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^16.18.0",
+        "typescript": "^4.9.0",
+        "eslint": "^8.30.0",
+        "@typescript-eslint/eslint-plugin": "^5.48.0",
+        "@typescript-eslint/parser": "^5.48.0"
+    },
+    "engines": {
+        "node": ">=16.0.0",
+        "npm": ">=8.0.0"
+    },
+    "keywords": [
+        "e2e",
+        "playwright",
+        "testing",
+        "ai-core",
+        "automation",
+        "multiple-runs",
+        "stability",
+        "regression"
+    ],
+    "author": "AI-CORE Team",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ai-core/ai-core"
+    },
+    "config": {
+        "test": {
+            "baseUrl": "http://localhost:8090",
+            "apiUrl": "http://localhost:8801",
+            "timeout": 30000,
+            "retries": 2,
+            "workers": 2,
+            "stabilityRuns": 5,
+            "loadTestRuns": 3,
+            "regressionRuns": 10,
+            "maxFailures": 3
+        },
+        "services": {
+            "federation": "http://localhost:8801",
+            "intentParser": "http://localhost:8802",
+            "mcpManager": "http://localhost:8803",
+            "clientDemo": "http://localhost:8090"
+        }
+    }
+}

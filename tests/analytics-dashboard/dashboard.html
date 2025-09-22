@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-CORE Analytics Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333; min-height: 100vh; padding: 20px;
+        }
+        .header {
+            background: rgba(255,255,255,0.95); padding: 20px; border-radius: 12px;
+            margin-bottom: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header h1 { color: #2a5298; font-size: 2rem; margin-bottom: 10px; }
+        .status { color: #4caf50; font-weight: bold; }
+        .dashboard {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; max-width: 1400px; margin: 0 auto;
+        }
+        .card {
+            background: rgba(255,255,255,0.95); border-radius: 12px; padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: transform 0.3s;
+        }
+        .card:hover { transform: translateY(-4px); }
+        .card h3 { color: #2a5298; margin-bottom: 15px; font-size: 1.2rem; }
+        .metric-large { font-size: 2.5rem; font-weight: bold; color: #2a5298; text-align: center; margin: 10px 0; }
+        .metric-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .metric-item { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .metric-value { font-size: 1.4rem; font-weight: bold; color: #2a5298; }
+        .metric-label { font-size: 0.9rem; color: #666; margin-top: 5px; }
+        .service-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 6px;
+            border-left: 4px solid #4caf50;
+        }
+        .service-item.degraded { border-left-color: #ff9800; }
+        .status-badge {
+            padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold;
+            background: #e8f5e8; color: #2e7d32;
+        }
+        .status-badge.degraded { background: #fff3e0; color: #f57c00; }
+        .alert-item {
+            padding: 10px; margin: 5px 0; border-radius: 6px; border-left: 4px solid #ff9800;
+            background: #fff3e0;
+        }
+        .alert-item.warning { border-left-color: #ff9800; }
+        .alert-critical { border-left-color: #f44336; background: #ffebee; }
+        .export-buttons { margin-top: 15px; }
+        .export-btn {
+            padding: 8px 16px; margin: 5px; border: none; border-radius: 6px;
+            background: #2a5298; color: white; cursor: pointer; font-size: 0.9rem;
+        }
+        .export-btn:hover { background: #1e3c72; }
+        .refresh-info { text-align: center; color: #666; font-size: 0.9rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 AI-CORE Analytics Dashboard</h1>
+        <div class="status">🟢 Live Monitoring Active • Hour 6 Analytics Platform</div>
+        <div style="margin-top: 10px; color: #666;">
+            Real-time Performance • Business Intelligence • Export Capabilities
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <!-- Real-time Performance -->
+        <div class="card">
+            <h3>⚡ Real-time Performance</h3>
+            <div class="metric-grid">
+                <div class="metric-item">
+                    <div class="metric-value" id="response-time">920</div>
+                    <div class="metric-label">Avg Response (ms)</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="throughput">12.5</div>
+                    <div class="metric-label">Workflows/min</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="error-rate">13.3%</div>
+                    <div class="metric-label">Error Rate</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="active">8</div>
+                    <div class="metric-label">Active Workflows</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Business KPIs -->
+        <div class="card">
+            <h3>📊 Business KPIs</h3>
+            <div class="metric-large">245.8%</div>
+            <div style="text-align: center; color: #666; margin-bottom: 15px;">Return on Investment</div>
+            <div class="metric-grid">
+                <div class="metric-item">
+                    <div class="metric-value">87.5</div>
+                    <div class="metric-label">Quality Score</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">$8750</div>
+                    <div class="metric-label">Cost Savings</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service Health -->
+        <div class="card">
+            <h3>🔧 Service Health</h3>
+            
+                <div class="service-item healthy">
+                    <div>
+                        <div style="font-weight: bold;">workflow-engine</div>
+                        <div style="font-size: 0.8rem; color: #666;">850ms • 99.2% uptime</div>
+                    </div>
+                    <div class="status-badge healthy">healthy</div>
+                </div>
+            
+                <div class="service-item healthy">
+                    <div>
+                        <div style="font-weight: bold;">mcp-manager</div>
+                        <div style="font-size: 0.8rem; color: #666;">650ms • 99.8% uptime</div>
+                    </div>
+                    <div class="status-badge healthy">healthy</div>
+                </div>
+            
+                <div class="service-item degraded">
+                    <div>
+                        <div style="font-weight: bold;">federation-service</div>
+                        <div style="font-size: 0.8rem; color: #666;">1200ms • 96.5% uptime</div>
+                    </div>
+                    <div class="status-badge degraded">degraded</div>
+                </div>
+            
+                <div class="service-item healthy">
+                    <div>
+                        <div style="font-weight: bold;">intent-parser</div>
+                        <div style="font-size: 0.8rem; color: #666;">780ms • 99.1% uptime</div>
+                    </div>
+                    <div class="status-badge healthy">healthy</div>
+                </div>
+            
+        </div>
+
+        <!-- Workflow Statistics -->
+        <div class="card">
+            <h3>📈 Workflow Statistics</h3>
+            <div class="metric-large">180</div>
+            <div style="text-align: center; color: #666; margin-bottom: 15px;">Total Workflows</div>
+            <div class="metric-grid">
+                <div class="metric-item">
+                    <div class="metric-value">156</div>
+                    <div class="metric-label">Completed</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">86.7%</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="card">
+            <h3>🚨 System Alerts</h3>
+            
+                <div class="alert-item warning">
+                    <div style="font-weight: bold;">Federation service response time above threshold</div>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                        WARNING • 1:57:52 PM
+                    </div>
+                </div>
+            
+                <div class="alert-item info">
+                    <div style="font-weight: bold;">System performing within normal parameters</div>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                        INFO • 1:57:52 PM
+                    </div>
+                </div>
+            
+        </div>
+
+        <!-- Export & Reports -->
+        <div class="card">
+            <h3>📋 Export & Reports</h3>
+            <div style="margin-bottom: 15px; color: #666;">
+                Generate comprehensive analytics reports
+            </div>
+            <div class="export-buttons">
+                <button class="export-btn" onclick="exportData('json')">📄 Export JSON</button>
+                <button class="export-btn" onclick="exportData('csv')">📊 Export CSV</button>
+                <button class="export-btn" onclick="window.open('/api/metrics', '_blank')">📈 Live Data</button>
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9rem; color: #666;">
+                <strong>Available Formats:</strong> JSON, CSV, Professional Reports<br>
+                <strong>Data Period:</strong> Real-time + Historical<br>
+                <strong>Update Frequency:</strong> Every 30 seconds
+            </div>
+        </div>
+    </div>
+
+    <div class="refresh-info">
+        Dashboard auto-refreshes every 30 seconds • Last updated: <span id="last-update">9/12/2025, 1:57:52 PM</span>
+    </div>
+
+    <script>
+        function exportData(format) {
+            if (format === 'json') {
+                window.open('/api/export/json', '_blank');
+            } else if (format === 'csv') {
+                alert('CSV export functionality demonstrated - would download CSV file');
+            }
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            fetch('/api/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('last-update').textContent = new Date().toLocaleString();
+                    // Update specific metrics
+                    if (data.metrics) {
+                        document.getElementById('response-time').textContent = data.metrics.realTime.averageResponseTime;
+                        document.getElementById('throughput').textContent = data.metrics.realTime.throughputPerMinute.toFixed(1);
+                        document.getElementById('error-rate').textContent = data.metrics.realTime.errorRate.toFixed(1) + '%';
+                        document.getElementById('active').textContent = data.metrics.realTime.activeWorkflows;
+                    }
+                })
+                .catch(console.error);
+        }, 30000);
+    </script>
+</body>
+</html>

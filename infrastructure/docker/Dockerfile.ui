@@ -1,0 +1,189 @@
+# Multi-stage Dockerfile for AI-PLATFORM React/Tauri UI
+# Optimized for modern frontend development with Node.js 20+ and advanced caching
+
+# ================================
+# Base Stage - Node.js Environment
+# ================================
+FROM node:20-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache libc6-compat
+
+# Set working directory
+WORKDIR /app
+
+# ================================
+# Dependencies Stage - Package Installation
+# ================================
+FROM base AS deps
+
+# Copy package files
+COPY src/ui/package.json src/ui/package-lock.json* ./
+COPY src/ui/yarn.lock* ./
+
+# Install dependencies based on the preferred package manager
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci --only=production; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile --prod; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# ================================
+# Builder Stage - Application Build
+# ================================
+FROM base AS builder
+
+# Copy package files and install all dependencies (including dev)
+COPY src/ui/package.json src/ui/package-lock.json* ./
+COPY src/ui/yarn.lock* ./
+
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# Copy source code
+COPY src/ui/ .
+
+# Set build environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV GENERATE_SOURCEMAP=false
+
+# Build the application
+RUN \
+  if [ -f yarn.lock ]; then yarn build; \
+  elif [ -f package-lock.json ]; then npm run build; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm build; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# ================================
+# Tauri Builder Stage - Desktop App Build
+# ================================
+FROM rust:1.75-slim-bookworm AS tauri-builder
+
+# Install system dependencies for Tauri
+RUN apt-get update && apt-get install -y \
+    libwebkit2gtk-4.0-dev \
+    build-essential \
+    curl \
+    wget \
+    file \
+    libssl-dev \
+    libgtk-3-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+# Set working directory
+WORKDIR /app
+
+# Copy UI source and built files from previous stage
+COPY --from=builder /app .
+COPY src/ui/src-tauri ./src-tauri
+
+# Build Tauri desktop application
+RUN npm install -g @tauri-apps/cli && \
+    tauri build
+
+# ================================
+# Production Stage - Web App Runner
+# ================================
+FROM node:20-alpine AS web-runner
+
+# Install system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    && addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD node healthcheck.js || exit 1
+
+# Create simple health check script
+RUN echo 'const http = require("http"); \
+const options = { host: "localhost", port: 3000, timeout: 2000 }; \
+const request = http.request(options, (res) => { \
+  console.log(`STATUS: ${res.statusCode}`); \
+  if (res.statusCode == 200) { process.exit(0); } \
+  else { process.exit(1); } \
+}); \
+request.on("error", function(err) { \
+  console.log("ERROR", err); \
+  process.exit(1); \
+}); \
+request.end();' > healthcheck.js
+
+# Runtime labels
+LABEL org.opencontainers.image.title="AI-PLATFORM UI"
+LABEL org.opencontainers.image.description="React/Tauri Frontend for AI-PLATFORM Platform"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/AI-PLATFORM/platform"
+LABEL org.opencontainers.image.vendor="AI-PLATFORM Platform Team"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Start the application
+CMD ["dumb-init", "node", "server.js"]
+
+# ================================
+# Development Stage - Hot Reload
+# ================================
+FROM base AS development
+
+# Install dependencies
+COPY src/ui/package.json src/ui/package-lock.json* ./
+COPY src/ui/yarn.lock* ./
+
+RUN \
+  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# Copy source code
+COPY src/ui/ .
+
+# Set development environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Expose port for development
+EXPOSE 3000
+
+# Start development server
+CMD \
+  if [ -f yarn.lock ]; then yarn dev; \
+  elif [ -f package-lock.json ]; then npm run dev; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm dev; \
+  else echo "Lockfile not found." && exit 1; \
+  fi

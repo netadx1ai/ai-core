@@ -1,0 +1,99 @@
+# Multi-stage Dockerfile for AI-PLATFORM Rust API Gateway
+# Optimized for 2025 development with modern Rust toolchain and security practices
+
+# ================================
+# Build Stage - Rust Compilation
+# ================================
+FROM rust:1.75-slim-bookworm AS builder
+
+# Install system dependencies for compilation
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy workspace configuration
+COPY Cargo.toml Cargo.lock ./
+COPY src/shared ./src/shared
+COPY src/api-gateway ./src/api-gateway
+
+# Create dummy main files to cache dependencies
+RUN mkdir -p src/api-gateway/src && \
+    echo 'fn main() {}' > src/api-gateway/src/main.rs
+
+# Build dependencies first (caching layer)
+RUN cargo build --release --bin api-gateway
+RUN rm -f target/release/deps/ai_core_api_gateway*
+
+# Copy actual source code
+COPY src/api-gateway/src ./src/api-gateway/src
+
+# Build the actual application
+RUN cargo build --release --bin api-gateway
+
+# ================================
+# Runtime Stage - Minimal Image
+# ================================
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r aicore && useradd -r -g aicore aicore
+
+# Create directories with proper permissions
+RUN mkdir -p /app/config /app/logs /app/data && \
+    chown -R aicore:aicore /app
+
+# Set working directory
+WORKDIR /app
+
+# Copy the compiled binary from builder stage
+COPY --from=builder /app/target/release/api-gateway /app/api-gateway
+COPY --from=builder /app/src/api-gateway/migrations ./migrations/
+
+# Copy configuration files
+COPY config/ ./config/
+
+# Set proper permissions
+RUN chmod +x /app/api-gateway && \
+    chown -R aicore:aicore /app
+
+# Switch to non-root user
+USER aicore
+
+# Expose port (using 8080 as standard)
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Set environment variables
+ENV RUST_LOG=info
+ENV RUST_BACKTRACE=1
+ENV PORT=8080
+ENV HOST=0.0.0.0
+
+# Runtime configuration
+LABEL org.opencontainers.image.title="AI-PLATFORM API Gateway"
+LABEL org.opencontainers.image.description="High-performance Rust API Gateway for AI-PLATFORM Platform"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/AI-PLATFORM/platform"
+LABEL org.opencontainers.image.vendor="AI-PLATFORM Platform Team"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Start the application
+CMD ["./api-gateway"]

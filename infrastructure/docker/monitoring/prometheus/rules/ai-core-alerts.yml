@@ -1,0 +1,420 @@
+# AI-PLATFORM Platform Alerting Rules
+# Comprehensive alerting for all platform components with 2025 best practices
+
+groups:
+  # ================================
+  # API GATEWAY & APPLICATION ALERTS
+  # ================================
+  - name: AI-PLATFORM-api-gateway
+    rules:
+      - alert: APIGatewayDown
+        expr: up{job="AI-PLATFORM-api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api-gateway
+          category: availability
+        annotations:
+          summary: "AI-PLATFORM API Gateway is down"
+          description: "API Gateway has been down for more than 1 minute. This affects all platform functionality."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/api-gateway-down"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="AI-PLATFORM-api-gateway",status=~"5.."}[5m]) / rate(http_requests_total{job="AI-PLATFORM-api-gateway"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: performance
+        annotations:
+          summary: "High error rate in API Gateway"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/high-error-rate"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="AI-PLATFORM-api-gateway"}[5m])) > 0.2
+        for: 3m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: performance
+        annotations:
+          summary: "High latency in API Gateway"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/high-latency"
+
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{name="AI-PLATFORM-api-gateway"} / container_spec_memory_limit_bytes{name="AI-PLATFORM-api-gateway"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: resource
+        annotations:
+          summary: "High memory usage in API Gateway"
+          description: "Memory usage is {{ $value | humanizePercentage }} of the limit."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/high-memory-usage"
+
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name="AI-PLATFORM-api-gateway"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: api-gateway
+          category: resource
+        annotations:
+          summary: "High CPU usage in API Gateway"
+          description: "CPU usage is {{ $value | humanizePercentage }} for the last 5 minutes."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/high-cpu-usage"
+
+  # ================================
+  # DATABASE ALERTS - POSTGRESQL
+  # ================================
+  - name: postgresql-alerts
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+          category: availability
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL has been down for more than 1 minute."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/postgresql-down"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: postgresql
+          category: resource
+        annotations:
+          summary: "PostgreSQL connection usage is high"
+          description: "PostgreSQL is using {{ $value | humanizePercentage }} of max connections."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/postgresql-connections"
+
+      - alert: PostgreSQLHighReplicationLag
+        expr: pg_stat_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+          category: replication
+        annotations:
+          summary: "PostgreSQL replication lag is high"
+          description: "Replication lag is {{ $value }} seconds."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/postgresql-replication-lag"
+
+      - alert: PostgreSQLDeadlocks
+        expr: rate(pg_stat_database_deadlocks[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: postgresql
+          category: performance
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "{{ $value }} deadlocks per second detected."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/postgresql-deadlocks"
+
+  # ================================
+  # DATABASE ALERTS - CLICKHOUSE
+  # ================================
+  - name: clickhouse-alerts
+    rules:
+      - alert: ClickHouseDown
+        expr: up{job="clickhouse"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: clickhouse
+          category: availability
+        annotations:
+          summary: "ClickHouse is down"
+          description: "ClickHouse has been down for more than 1 minute."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/clickhouse-down"
+
+      - alert: ClickHouseQueryDurationHigh
+        expr: ClickHouseProfileEvents_Query > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: clickhouse
+          category: performance
+        annotations:
+          summary: "ClickHouse query duration is high"
+          description: "Average query duration is {{ $value }} seconds."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/clickhouse-slow-queries"
+
+      - alert: ClickHouseDiskSpaceHigh
+        expr: (ClickHouseAsyncMetrics_DiskUsed_default / ClickHouseAsyncMetrics_DiskTotal_default) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: clickhouse
+          category: resource
+        annotations:
+          summary: "ClickHouse disk usage is high"
+          description: "Disk usage is {{ $value | humanizePercentage }} of total capacity."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/clickhouse-disk-space"
+
+  # ================================
+  # DATABASE ALERTS - MONGODB
+  # ================================
+  - name: mongodb-alerts
+    rules:
+      - alert: MongoDBDown
+        expr: up{job="mongodb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mongodb
+          category: availability
+        annotations:
+          summary: "MongoDB is down"
+          description: "MongoDB has been down for more than 1 minute."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/mongodb-down"
+
+      - alert: MongoDBReplicationLag
+        expr: mongodb_mongod_replset_member_replication_lag > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: mongodb
+          category: replication
+        annotations:
+          summary: "MongoDB replication lag is high"
+          description: "Replication lag is {{ $value }} seconds."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/mongodb-replication-lag"
+
+      - alert: MongoDBConnectionsHigh
+        expr: mongodb_connections{state="current"} / mongodb_connections{state="available"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: mongodb
+          category: resource
+        annotations:
+          summary: "MongoDB connection usage is high"
+          description: "Connection usage is {{ $value | humanizePercentage }} of available connections."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/mongodb-connections"
+
+  # ================================
+  # DATABASE ALERTS - REDIS
+  # ================================
+  - name: redis-alerts
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+          category: availability
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/redis-down"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          category: resource
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Memory usage is {{ $value | humanizePercentage }} of max memory."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/redis-memory"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          category: resource
+        annotations:
+          summary: "Redis connection count is high"
+          description: "{{ $value }} clients connected to Redis."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/redis-connections"
+
+  # ================================
+  # TEMPORAL WORKFLOW ALERTS
+  # ================================
+  - name: temporal-alerts
+    rules:
+      - alert: TemporalDown
+        expr: up{job="temporal"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: temporal
+          category: availability
+        annotations:
+          summary: "Temporal workflow engine is down"
+          description: "Temporal has been down for more than 1 minute."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/temporal-down"
+
+      - alert: WorkflowFailureRateHigh
+        expr: rate(temporal_workflow_failed_total[5m]) / rate(temporal_workflow_completed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: temporal
+          category: workflow
+        annotations:
+          summary: "High workflow failure rate"
+          description: "Workflow failure rate is {{ $value | humanizePercentage }}."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/workflow-failures"
+
+      - alert: WorkflowTaskQueueLag
+        expr: temporal_task_queue_lag_seconds > 300
+        for: 10m
+        labels:
+          severity: warning
+          service: temporal
+          category: performance
+        annotations:
+          summary: "High workflow task queue lag"
+          description: "Task queue lag is {{ $value }} seconds."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/workflow-queue-lag"
+
+  # ================================
+  # INFRASTRUCTURE ALERTS
+  # ================================
+  - name: infrastructure-alerts
+    rules:
+      - alert: HostOutOfMemory
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: node-exporter
+          category: resource
+        annotations:
+          summary: "Host out of memory"
+          description: "Node memory is filling up (< 10% left)"
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/host-memory"
+
+      - alert: HostOutOfDiskSpace
+        expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: node-exporter
+          category: resource
+        annotations:
+          summary: "Host out of disk space"
+          description: "Disk is almost full (< 10% left)"
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/host-disk"
+
+      - alert: HostHighCpuLoad
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: node-exporter
+          category: resource
+        annotations:
+          summary: "Host high CPU load"
+          description: "CPU load is > 80%"
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/host-cpu"
+
+      - alert: ContainerKilled
+        expr: time() - container_last_seen > 60
+        for: 0m
+        labels:
+          severity: warning
+          service: docker
+          category: availability
+        annotations:
+          summary: "Container killed"
+          description: "A container has disappeared"
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/container-killed"
+
+  # ================================
+  # BUSINESS LOGIC ALERTS
+  # ================================
+  - name: business-alerts
+    rules:
+      - alert: LowAutomationSuccessRate
+        expr: rate(automation_workflow_success_total[30m]) / rate(automation_workflow_total[30m]) < 0.95
+        for: 10m
+        labels:
+          severity: warning
+          service: AI-PLATFORM-api-gateway
+          category: business
+        annotations:
+          summary: "Low automation success rate"
+          description: "Automation success rate is {{ $value | humanizePercentage }} over the last 30 minutes."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/automation-success-rate"
+
+      - alert: HighMCPServerLatency
+        expr: histogram_quantile(0.95, rate(mcp_server_request_duration_seconds_bucket[5m])) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          service: AI-PLATFORM-api-gateway
+          category: performance
+        annotations:
+          summary: "High MCP server latency"
+          description: "95th percentile MCP server latency is {{ $value }}s."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/mcp-server-latency"
+
+      - alert: UserEngagementDrop
+        expr: rate(user_action_total[1h]) < rate(user_action_total[1h] offset 24h) * 0.7
+        for: 30m
+        labels:
+          severity: info
+          service: AI-PLATFORM-api-gateway
+          category: business
+        annotations:
+          summary: "User engagement has dropped"
+          description: "User engagement is 30% lower than the same time yesterday."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/user-engagement"
+
+  # ================================
+  # SECURITY ALERTS
+  # ================================
+  - name: security-alerts
+    rules:
+      - alert: UnauthorizedAPIAccess
+        expr: rate(http_requests_total{job="AI-PLATFORM-api-gateway",status="401"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: AI-PLATFORM-api-gateway
+          category: security
+        annotations:
+          summary: "High number of unauthorized API requests"
+          description: "{{ $value }} unauthorized requests per second."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/unauthorized-access"
+
+      - alert: SuspiciousLoginAttempts
+        expr: rate(authentication_failure_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: AI-PLATFORM-api-gateway
+          category: security
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "{{ $value }} failed login attempts per second."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/suspicious-login"
+
+      - alert: RateLimitTriggered
+        expr: rate(rate_limit_exceeded_total[5m]) > 1
+        for: 1m
+        labels:
+          severity: info
+          service: AI-PLATFORM-api-gateway
+          category: security
+        annotations:
+          summary: "Rate limiting is being triggered frequently"
+          description: "{{ $value }} rate limit violations per second."
+          runbook_url: "https://docs.AI-PLATFORM.dev/runbooks/rate-limit"

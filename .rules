@@ -1,0 +1,539 @@
+# AI-CORE Development Environment Rules
+# Comprehensive FAANG AI-Assisted Software Development Protocol
+# Last Updated: 2025-09-21T01:16:41.143101+00:00
+
+## 🎯 PROJECT CONTEXT
+
+**Project:** AI-CORE Development Environment
+**Location:** /Volumes/T7Shield/HPZ620/AI-CORE
+**Target Users:** dev/redteam/pm/analyst/sre/qa
+**Environment:** macOS, /bin/zsh, Zed IDE, Docker, Rust Language Server
+**Primary Language:** Rust (Backend), TypeScript/React (Frontend)
+**GitHub Repository:** https://github.com/netadx1ai/ai-core
+**GitHub Issues:** https://github.com/netadx1ai/ai-core/issues
+**GitHub Project Board:** https://github.com/netadx1ai/ai-core/projects
+**Real-time UTC timestamps:** Use 'now' tool with timezone: "utc"
+
+---
+
+## 🚨 SUPREME AI AGENT PROTOCOL
+
+### Rule 01: Supreme AI Agent Protocol
+- Use current timestamp UTC, not fake time - ALWAYS call 'now' tool
+- AI agent as full development partner, not just code generator
+- High autonomy, deep research, end-to-end solutions
+- Logical inference to resolve ambiguity without excessive queries
+- Keep code simple, clean, and scalable
+- **CRITICAL CONSTRAINTS - Follow Strictly:**
+  - Do NOT modify any code unrelated to current implementation or requested feature
+  - Do NOT refactor components, files, functions, or styles outside scope of change
+  - Do NOT delete existing routes, handlers, pages, or functionality unless explicitly asked
+  - Preserve all current logic and integrations unless specifically instructed otherwise
+  - Keep changes atomic, focused, and reversible
+  - If you detect outdated or redundant code, notify separately — do NOT remove or alter on your own
+  - Be extremely careful when working in shared or core files — isolate changes in dedicated components/utils whenever possible
+  - All hardcoded text must be moved to i18n (English and Spanish). No literals in components
+
+---
+
+## 🔒 SECURITY & CONFIDENTIALITY PROTECTION (CRITICAL)
+
+### Rule 01A: Absolute Security Protection - NEVER COMMIT SENSITIVE DATA
+**CRITICAL SECURITY REQUIREMENTS - Enforce without exception:**
+
+**🚫 NEVER COMMIT TO GIT:**
+- **Environment files**: .env, .env.*, API keys, database URLs, connection strings
+- **Secrets & Credentials**: passwords, tokens, certificates, private keys, auth configs
+- **Private data**: personal information, email addresses, phone numbers, internal documents
+- **Confidential content**: business secrets, proprietary algorithms, internal communications
+- **Development artifacts**: session logs, debug traces, error dumps, temporary files
+- **Configuration with secrets**: production configs, deployment scripts with credentials
+- **Database exports**: SQL dumps, database backups, user data exports
+- **Log files**: application logs, error logs, debug outputs, system traces
+
+**🔍 VALIDATION REQUIREMENTS:**
+- ALWAYS scan files before git add/commit for sensitive patterns
+- Use .gitignore to prevent accidental inclusion of sensitive file types
+- Validate that .env.example contains only dummy/template values
+- Review all configuration files for hardcoded secrets before commit
+- Ensure documentation doesn't contain real API keys or credentials
+- Check that example code uses placeholder values, not real data
+
+**⚠️ IF SENSITIVE DATA DETECTED:**
+1. IMMEDIATELY stop the commit process
+2. Remove or sanitize the sensitive content
+3. Update .gitignore to prevent future occurrences
+4. Use environment variables or secure secret management
+5. Create .example files with dummy data for reference
+
+**🛡️ PROTECTION PATTERNS:**
+- Use placeholder values: "your_api_key_here", "example.com", "dummy_password"
+- Implement proper secret management for production environments
+- Document configuration without exposing actual values
+- Use code comments to indicate where secrets should be configured
+- Maintain separate private repositories for sensitive deployment configurations
+
+**This rule supersedes all other rules when security is at risk. When in doubt, DO NOT COMMIT.**
+
+---
+
+## 📁 DEVELOPMENT WORKSPACE ORGANIZATION (HIGH PRIORITY)
+
+### Rule 01B: Dev-Works Directory Organization - MANDATORY
+**CRITICAL ORGANIZATION REQUIREMENTS - Enforce strictly:**
+
+**📂 ALL SESSION & TRACKING FILES MUST BE IN dev-works/ DIRECTORY:**
+- **Session files**: `dev-works/sessions/` - ALL session tracking and reports
+- **Task files**: `dev-works/tasks/` - ALL task management and tracking
+- **Reports**: `dev-works/reports/` - ALL analysis, completion, and status reports
+- **Summaries**: `dev-works/summaries/` - ALL project and milestone summaries
+- **Logs**: `dev-works/logs/` - ALL development and session logs
+- **Archives**: `dev-works/archives/` - ALL completed and historical records
+
+**🚫 NEVER CREATE SESSION/TRACKING FILES IN ROOT (./) DIRECTORY:**
+- Do NOT create session files in project root
+- Do NOT place task reports outside dev-works structure
+- Do NOT scatter tracking files across various directories
+- Do NOT create temporary tracking files in src/, docs/, or other project directories
+
+**📋 PROPER FILE ORGANIZATION:**
+- Use consistent naming: `{STATUS}_{timestamp}_{description}.md`
+- Maintain clear directory hierarchy within dev-works/
+- Keep related files grouped in appropriate subdirectories
+- Follow established patterns for file naming and organization
+
+**🔄 MIGRATION REQUIREMENTS:**
+- Move any existing tracking files from root to dev-works/
+- Update references and links to reflect proper locations
+- Maintain consistent organization across all development work
+- Ensure .gitignore properly handles dev-works/ structure
+
+**This rule ensures clean project structure and professional organization standards.**
+
+---
+
+## ⚡ IMMEDIATE SESSION & TASK TRACKING (HIGHEST PRIORITY)
+
+### Rule 02: IMMEDIATE Session & Task Tracking - HIGH PRIORITY
+**ASAP Requirements - Execute immediately when starting any work:**
+
+1. **CREATE session file BEFORE beginning any work or analysis**
+2. **UPDATE session status in real-time as work progresses**
+3. **CREATE task file for any work item immediately upon identification**
+4. **UPDATE task status ASAP when status changes occur**
+
+**Session Format:** `dev-works/sessions/ACTIVE_{timestamp}_{work_description}.md`
+**Task Format:** `dev-works/tasks/TODO_{task_name}_{timestamp}.md`
+
+**Status Updates MUST Include:**
+- Real UTC timestamp (from 'now' tool)
+- Reason for change
+- Progress percentage
+- Next steps
+
+**NO WORK should proceed without active session tracking**
+**This rule has HIGHEST PRIORITY and must be executed immediately**
+
+**Session Template:**
+```yaml
+---
+context:
+  working_directory: /Volumes/T7Shield/HPZ620/AI-CORE
+  baseline_reference: /Volumes/T7Shield/HPZ620/AI-CORE
+  codebase_relationship: reference
+  environment: macOS_zsh_rust_typescript
+  target_users: [dev, sre, qa]
+github_issue: "#000"
+github_status: "open"
+session_id: "ACTIVE_{timestamp}"
+status: "ACTIVE"
+created: "{utc_timestamp}"
+updated: "{utc_timestamp}"
+---
+
+# Session: {work_description}
+
+## W5H Framework
+- **WHO**: {stakeholders, assignees, reviewers}
+- **WHAT**: {objectives, scope, deliverables, success_criteria}
+- **WHEN**: {timeline, milestones, deadlines, duration_estimates}
+- **WHERE**: {file_paths, directories, environment_context}
+- **WHY**: {business_justification, problem_statement, value_proposition}
+- **HOW**: {methodology, tools, implementation_strategy}
+
+## Progress Log
+- {timestamp}: Session started
+```
+
+---
+
+## 🔄 IMMEDIATE GITHUB SYNCHRONIZATION (HIGH PRIORITY)
+
+### Rule 03: IMMEDIATE GitHub Synchronization - HIGH PRIORITY
+**ASAP Requirements - Synchronize immediately when status changes occur:**
+
+1. **CREATE GitHub issue for each new session/task immediately upon creation**
+2. **UPDATE GitHub issue status ASAP when session/task status changes**
+3. **SYNC session/task status with corresponding GitHub issue status in real-time**
+4. **LINK session/task files to GitHub issues with issue number references**
+
+**GitHub Issue Format:**
+- Title must match session/task description with timestamp
+- Body must include link to session/task file
+- Labels: session, task, ai-assisted, priority-level
+
+**Status Mapping:**
+- ACTIVE → Open
+- COMPLETED → Closed
+- BLOCKED → Blocked
+- PAUSED → Draft
+- REVIEW → In Review
+
+**Include GitHub issue number in session/task file headers:** `github_issue: "#123"`
+**Status synchronization MUST happen within 5 minutes of any status change**
+**NO status changes should remain unsynced with GitHub issues**
+
+---
+
+## 🛡️ CODEBASE PROTECTION RULES
+
+### Rule 04: Protected/Frozen Directories
+**Read-Only Directories:**
+- `target/` (Rust build artifacts)
+- `.git/` (Git metadata)
+- `node_modules/` (NPM dependencies)
+- `.cache/` (Cache files)
+- `logs/` (System logs - read for analysis only)
+
+### Rule 05: Baseline Reference Protection
+**Main Codebase Protection:**
+- `src/` directory is baseline reference
+- Direct modifications require explicit approval
+- Use feature branches for development work
+- Maintain clean separation between baseline and development
+
+### Rule 06: Modification Protocol
+**When modifications needed:**
+- Clone/fork to `dev-works/` directory for experimentation
+- Ask user for working directory confirmation
+- Document relationship to baseline in YAML front matter
+- Generate patches against baseline for review
+
+### Rule 07: Quality Control Pipeline
+**Required Workflow:** `test && check && fix`
+```bash
+# Rust backend validation
+cargo build --release
+cargo test --workspace
+cargo clippy -- -D warnings
+cargo fmt --check
+
+# TypeScript frontend validation (if applicable)
+cd src/ui && npm run build && npm run lint && npm run test
+```
+
+**Change Documentation:**
+- Generate patch files for significant changes
+- Document impact assessment
+- Update dependency tracking
+
+---
+
+## 📋 SESSION & TASK TRACKING PROTOCOLS
+
+### Rule 08: Session Format Standards
+**Session Naming:** `sessions/{status}_{timestamp}_{session_name}.md`
+**Status Options:** ACTIVE, PAUSED, COMPLETED, BLOCKED, CANCELLED, REVIEW, ARCHIVED
+**Timestamp Format:** YYYYMMDDTHHMMSSZ (RFC 3339 UTC from 'now' tool)
+
+### Rule 09: Task Format Standards
+**Task Naming:** `tasks/{status}_tasks_{task_name}_{timestamp}.md`
+**Task Statuses:** TODO, WIP, REVIEW, DONE, BLOCKED, CANCELLED, TESTING, DEPLOYED, SPEC
+**Priority Levels:** P0 (Critical), P1 (High), P2 (Medium), P3 (Low)
+
+### Rule 10: File Relationship Documentation
+**Required YAML Front Matter:**
+```yaml
+related_files:
+  - path: "src/api-gateway/src/main.rs"
+    relationship: "implements"
+  - path: "tests/integration/api_tests.rs"
+    relationship: "test"
+dependencies:
+  - service: "mcp-manager"
+    type: "runtime"
+  - crate: "axum"
+    type: "build"
+```
+
+### Rule 11: Status Transition Tracking
+**Required for all status changes:**
+- Previous status and timestamp
+- New status and timestamp
+- Reason for transition
+- Impact assessment
+- Next milestone target
+
+### Rule 12: Archive Requirements
+**Before archiving:**
+- Complete all documentation
+- Update GitHub issue status
+- Generate summary report
+- Link to related sessions/tasks
+- Verify no blocking dependencies
+
+---
+
+## 📝 W5H DOCUMENTATION FRAMEWORK (MANDATORY)
+
+### Rule 13: W5H Framework for ALL .md files
+**WHO:** Stakeholders, assignees, reviewers, target user types
+**WHAT:** Objectives, scope, deliverables, success criteria
+**WHEN:** Timelines, milestones, deadlines, duration estimates
+**WHERE:** File paths, directories, environment context, working directories
+**WHY:** Business justification, problem statement, value proposition
+**HOW:** Methodology, tools, implementation strategy
+
+### Rule 14: Context Documentation Requirements
+**Required YAML context section for ALL .md files:**
+```yaml
+context:
+  working_directory: /Volumes/T7Shield/HPZ620/AI-CORE
+  baseline_reference: /Volumes/T7Shield/HPZ620/AI-CORE
+  codebase_relationship: [clone|fork|patch|reference]
+  environment: macOS_zsh_rust_typescript
+  target_users: [dev, redteam, pm, analyst, sre, qa]
+github_issue: "#123"
+github_status: "open"
+```
+
+---
+
+## 🏗️ WORKING DIRECTORY CONTEXT (CRITICAL - HIGH PRIORITY)
+
+### Rule 15: Working Directory Documentation
+**ALL docs/md files MUST specify current working directory**
+**Path Format:** Always use full absolute path starting with `/Volumes/T7Shield/HPZ620/AI-CORE`
+**Relationship Types:** clone, fork, patch, reference
+
+### Rule 16: Environment Context Requirements
+**Required Documentation:**
+- Operating System: macOS
+- Shell: /bin/zsh
+- IDE: Zed
+- Container Platform: Docker
+- Language Servers: rust-analyzer, typescript-language-server
+- Build Tools: cargo, npm
+
+### Rule 17: File Relationship Types
+**Documented Relationships:**
+- `reference`: Read-only reference to baseline
+- `implements`: Code implementation of specification
+- `documents`: Documentation of code/process
+- `depends`: Runtime or build dependency
+- `test`: Test coverage for component
+- `security`: Security assessment or implementation
+- `deploys`: Deployment configuration or script
+- `reviews`: Code review or quality assessment
+
+---
+
+## 👥 MULTI-USER WORKFLOW SUPPORT
+
+### Rule 18: Developer (dev) Protocols
+- Technical implementation focus
+- Code review requirements
+- Testing and validation protocols
+- Documentation standards for technical decisions
+
+### Rule 19: Red Team (redteam) Protocols
+- Security assessment documentation
+- Vulnerability testing procedures
+- Penetration testing reports
+- Security recommendation tracking
+
+### Rule 20: Project Manager (pm) Protocols
+- High-level progress summaries
+- Milestone tracking and reporting
+- Resource allocation documentation
+- Stakeholder communication logs
+
+### Rule 21: Analyst (analyst) Protocols
+- Data analysis and metrics collection
+- Performance monitoring reports
+- Business impact assessments
+- Trend analysis and predictions
+
+### Rule 22: SRE (sre) Protocols
+- System reliability monitoring
+- Incident response documentation
+- Performance optimization tracking
+- Infrastructure change management
+
+### Rule 23: QA (qa) Protocols
+- Test case documentation
+- Bug tracking and resolution
+- Quality metrics collection
+- Release validation procedures
+
+---
+
+## 🔧 TECHNICAL STANDARDS
+
+### Rule 24: Rust Development Standards
+- Use `cargo` for all build operations
+- Follow Rust 2021 edition standards
+- Implement comprehensive error handling with `Result<T, E>`
+- Use `tokio` for async operations
+- Implement proper logging with `tracing`
+- Follow clippy recommendations (deny warnings)
+
+### Rule 25: TypeScript/React Standards
+- Use strict TypeScript configuration
+- Implement proper type definitions
+- Follow React best practices and hooks patterns
+- Use ESLint and Prettier for code formatting
+- Implement comprehensive error boundaries
+
+### Rule 26: Security-First Development
+- Never commit API keys, passwords, or sensitive data
+- Use environment variables for configuration
+- Implement proper input validation and sanitization
+- Follow OWASP security guidelines
+- Conduct security reviews for all changes
+
+### Rule 27: Code Review Requirements
+- All code changes require review
+- Automated testing must pass
+- Security assessment for changes involving authentication/authorization
+- Performance impact evaluation for critical paths
+- Documentation updates for public APIs
+
+---
+
+## ⏰ TIME & ENVIRONMENT MANAGEMENT
+
+### Rule 28: Real-Time Timestamp Protocol
+- ALWAYS use 'now' tool with timezone: "utc"
+- Format: RFC 3339 (YYYY-MM-DDTHH:MM:SS.sssssssss+00:00)
+- Include timestamps in all status updates
+- Never use fake or hardcoded timestamps
+
+### Rule 29: Environment-Specific Considerations
+- macOS-specific file paths and permissions
+- Zsh shell compatibility for scripts
+- Docker container networking on macOS
+- File system case sensitivity awareness
+
+### Rule 30: Platform Compatibility
+- Ensure cross-platform compatibility where possible
+- Document platform-specific requirements
+- Test on target deployment environments
+- Maintain compatibility matrices
+
+---
+
+## 🚀 EXECUTION & WORKFLOW RULES
+
+### Rule 31: Session Initialization Protocol
+```bash
+# Automated (preferred):
+./tools/ai-work-tracker.sh -Action start-session -AgentName "agent-name" -Objective "task"
+
+# Manual fallback:
+mkdir -p dev-works/sessions
+echo "# ACTIVE - $(date -u +%Y%m%d%H%M%S) - task" > dev-works/sessions/ACTIVE-$(date -u +%Y%m%d%H%M%S)-task.md
+```
+
+### Rule 32: Task Progression Management
+- Update progress every 15-30 minutes during active work
+- Document blockers immediately when encountered
+- Escalate critical issues within 1 hour
+- Maintain clear next-steps documentation
+
+### Rule 33: Status Transition Protocols
+**Valid Transitions:**
+- TODO → WIP
+- WIP → REVIEW, BLOCKED, DONE
+- REVIEW → WIP, DONE, CANCELLED
+- BLOCKED → WIP, CANCELLED
+- DONE → ARCHIVED (after 7 days)
+
+### Rule 34: Milestone Tracking
+- Define clear success criteria for each milestone
+- Track completion percentage with objective metrics
+- Document dependencies and blockers
+- Update GitHub project board in real-time
+
+### Rule 35: Archive and Documentation
+**Archive Triggers:**
+- 7 days after completion
+- Project phase completion
+- Quarterly cleanup cycles
+- Storage optimization needs
+
+**Required Archive Documentation:**
+- Final status summary
+- Lessons learned
+- Impact assessment
+- Reference links for future work
+
+---
+
+## ✅ COMPLIANCE & ENFORCEMENT
+
+### Rule 36: Validation Requirements
+- All rules must be followed without exception
+- Critical rules (01-03, 15) have immediate enforcement
+- Weekly compliance audits of session/task tracking
+- Monthly archive and cleanup procedures
+
+
+### Rule 37: Violation Consequences
+- **Rule 02 violations:** Immediate work stoppage until session created
+- **Rule 03 violations:** GitHub sync required before proceeding
+- **Security violations:** Immediate escalation and remediation
+- **Quality violations:** Code review and rework required
+
+### Rule 38: Management Tracking
+- Rule compliance metrics in monthly reports
+- Session/task tracking effectiveness measurement
+- GitHub synchronization accuracy monitoring
+- Quality gate pass/fail rates
+
+### Rule 39: Continuous Improvement
+- Monthly rule effectiveness review
+- User feedback incorporation
+- Process optimization based on metrics
+- Rule updates with version control
+
+### Rule 40: Emergency Procedures
+- **Ultrathink Protocol:** If automation fails, analyze root cause before proceeding
+- **Escalation Path:** If ultrathink doesn't help, stop and ask for help
+- **Fallback Commands:** Manual session creation and quality checks
+- **Recovery Procedures:** Documented steps for common failure scenarios
+
+---
+
+## 🎯 CRITICAL SUCCESS FACTORS
+
+1. **Rule 02 (Immediate Session Tracking)** must be actionable and enforceable
+2. **Rule 03 (GitHub Synchronization)** must sync within 5-minute SLA
+3. Session tracking must happen BEFORE any work begins
+4. GitHub issues must be created immediately for all sessions/tasks
+5. Status updates must be real-time with timestamps in both local and GitHub systems
+6. Working directory context must be documented in ALL files
+7. No work should proceed without proper tracking infrastructure
+8. GitHub integration must be tested and validated for production use
+
+---
+
+**ENFORCEMENT PRIORITY:**
+- **HIGHEST:** Rules 01, 02, 03, 15 (Supreme Protocol, Immediate Tracking, GitHub Sync, Working Directory)
+- **HIGH:** Rules 04-07, 26 (Codebase Protection, Security)
+- **MEDIUM:** Rules 08-25, 27-35 (Documentation, Standards, Workflow)
+- **MAINTENANCE:** Rules 36-40 (Compliance, Monitoring, Improvement)
+
+**Last Updated:** 2025-09-21T01:16:41.143101+00:00
+**Next Review:** 2025-10-21T01:16:41.143101+00:00
+**Version:** 1.0.0

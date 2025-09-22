@@ -1,0 +1,1868 @@
+openapi: 3.0.3
+info:
+  title: AI-PLATFORM Intelligent Automation Platform API
+  description: |
+    Comprehensive API specification for the AI-PLATFORM platform, covering all microservices
+    and their endpoints for workflow orchestration, content generation, and system management.
+
+    ## Architecture
+    - **API Gateway**: Central entry point with authentication and rate limiting
+    - **Intent Parser**: Natural language processing and workflow planning
+    - **Workflow Orchestrator**: Temporal.io-based workflow execution
+    - **Progress Monitor**: Real-time workflow tracking and notifications
+    - **Analytics Service**: Business intelligence and performance metrics
+    - **Federation Service**: External client integration via MCP protocol
+
+    ## Authentication
+    All endpoints require JWT bearer token authentication unless specified otherwise.
+    Tokens are obtained via the `/auth/login` endpoint and must be included in the
+    Authorization header: `Authorization: Bearer <token>`
+
+    ## Rate Limiting
+    - **Free Tier**: 60 requests/minute, 1,000 requests/hour
+    - **Pro Tier**: 1,000 requests/minute, 10,000 requests/hour
+    - **Enterprise**: Custom limits based on agreement
+
+    Rate limit headers are included in all responses:
+    - `X-RateLimit-Limit`: Request limit per window
+    - `X-RateLimit-Remaining`: Requests remaining in current window
+    - `X-RateLimit-Reset`: Unix timestamp when window resets
+
+  version: 1.0.0
+  contact:
+    name: AI-PLATFORM Platform Team
+    email: platform@AI-PLATFORM.dev
+    url: https://docs.AI-PLATFORM.dev
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.AI-PLATFORM.dev/v1
+    description: Production server
+  - url: https://staging-api.AI-PLATFORM.dev/v1
+    description: Staging server
+  - url: http://localhost:8080/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Workflows
+    description: Workflow creation, execution, and management
+  - name: Automation
+    description: Natural language automation requests
+  - name: Progress
+    description: Real-time workflow tracking and notifications
+  - name: Analytics
+    description: Business intelligence and performance metrics
+  - name: Federation
+    description: External client integration and MCP proxy
+  - name: Users
+    description: User management and profile operations
+  - name: System
+    description: Health checks and system information
+
+paths:
+  # =====================================================================
+  # Authentication Endpoints
+  # =====================================================================
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User authentication
+      description: Authenticate user with email/password and return access tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshTokenResponse"
+        "401":
+          description: Invalid refresh token
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: User logout
+      description: Invalidate current session and tokens
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: User registration
+      description: Register new user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "409":
+          description: User already exists
+
+  # =====================================================================
+  # Automation Endpoints
+  # =====================================================================
+  /automation:
+    post:
+      tags: [Automation]
+      summary: Create automation workflow
+      description: Process natural language request and create workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutomationRequest"
+      responses:
+        "201":
+          description: Automation workflow created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAutomationResponse"
+        "400":
+          description: Invalid request format
+        "402":
+          description: Insufficient budget
+
+  /automation/{workflowId}:
+    get:
+      tags: [Automation]
+      summary: Get workflow status
+      description: Get current status and progress of workflow
+      parameters:
+        - $ref: "#/components/parameters/WorkflowId"
+      responses:
+        "200":
+          description: Workflow status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowStatusResponse"
+        "404":
+          description: Workflow not found
+
+    delete:
+      tags: [Automation]
+      summary: Cancel workflow
+      description: Cancel running workflow execution
+      parameters:
+        - $ref: "#/components/parameters/WorkflowId"
+      responses:
+        "200":
+          description: Workflow cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # =====================================================================
+  # Workflow Management
+  # =====================================================================
+  /workflows:
+    get:
+      tags: [Workflows]
+      summary: List workflows
+      description: Get paginated list of user workflows
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+        - $ref: "#/components/parameters/WorkflowType"
+        - $ref: "#/components/parameters/WorkflowStatus"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200":
+          description: Workflows retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListWorkflowsResponse"
+
+    post:
+      tags: [Workflows]
+      summary: Create workflow definition
+      description: Create new workflow definition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowRequest"
+      responses:
+        "201":
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateWorkflowResponse"
+
+  /workflows/{workflowId}:
+    get:
+      tags: [Workflows]
+      summary: Get workflow details
+      parameters:
+        - $ref: "#/components/parameters/WorkflowId"
+      responses:
+        "200":
+          description: Workflow details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinition"
+
+    put:
+      tags: [Workflows]
+      summary: Update workflow definition
+      parameters:
+        - $ref: "#/components/parameters/WorkflowId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkflowRequest"
+      responses:
+        "200":
+          description: Workflow updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDefinition"
+
+    delete:
+      tags: [Workflows]
+      summary: Delete workflow definition
+      parameters:
+        - $ref: "#/components/parameters/WorkflowId"
+      responses:
+        "204":
+          description: Workflow deleted
+
+  /workflows/{workflowId}/execute:
+    post:
+      tags: [Workflows]
+      summary: Execute workflow
+      description: Start execution of workflow definition
+      parameters:
+        - $ref: "#/components/parameters/WorkflowId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteWorkflowRequest"
+      responses:
+        "201":
+          description: Workflow execution started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteWorkflowResponse"
+
+  # =====================================================================
+  # Progress Monitoring
+  # =====================================================================
+  /progress/{executionId}:
+    get:
+      tags: [Progress]
+      summary: Get execution progress
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Progress information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressResponse"
+
+  /progress/{executionId}/history:
+    get:
+      tags: [Progress]
+      summary: Get progress history
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Progress history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                    format: uuid
+                  history:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProgressUpdate"
+
+  # =====================================================================
+  # Analytics
+  # =====================================================================
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Get dashboard metrics
+      description: Get real-time dashboard data for user
+      parameters:
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week, month]
+            default: day
+      responses:
+        "200":
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardMetrics"
+
+  /analytics/workflows:
+    get:
+      tags: [Analytics]
+      summary: Get workflow analytics
+      description: Get detailed analytics for workflows
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: groupBy
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week]
+      responses:
+        "200":
+          description: Workflow analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowAnalytics"
+
+  /analytics/costs:
+    get:
+      tags: [Analytics]
+      summary: Get cost analytics
+      description: Get cost breakdown and trends
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter]
+            default: month
+      responses:
+        "200":
+          description: Cost analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostAnalytics"
+
+  # =====================================================================
+  # Federation
+  # =====================================================================
+  /federation/clients:
+    get:
+      tags: [Federation]
+      summary: List federated clients
+      description: Get list of registered client integrations
+      responses:
+        "200":
+          description: Client list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientInfo"
+
+    post:
+      tags: [Federation]
+      summary: Register client
+      description: Register new federated client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterClientRequest"
+      responses:
+        "201":
+          description: Client registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterClientResponse"
+
+  /federation/mcp-servers:
+    get:
+      tags: [Federation]
+      summary: List MCP servers
+      description: Get available MCP servers and their capabilities
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, maintenance]
+      responses:
+        "200":
+          description: MCP server list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MCPServer"
+
+  /federation/mcp-servers/{serverId}/execute:
+    post:
+      tags: [Federation]
+      summary: Execute MCP tool
+      description: Execute tool on specific MCP server
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteMCPToolRequest"
+      responses:
+        "200":
+          description: Tool executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteMCPToolResponse"
+
+  # =====================================================================
+  # User Management
+  # =====================================================================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    put:
+      tags: [Users]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/me/preferences:
+    get:
+      tags: [Users]
+      summary: Get user preferences
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
+    put:
+      tags: [Users]
+      summary: Update user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreferences"
+      responses:
+        "200":
+          description: Preferences updated
+
+  /users/me/api-keys:
+    get:
+      tags: [Users]
+      summary: List API keys
+      responses:
+        "200":
+          description: API key list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKeyInfo"
+
+    post:
+      tags: [Users]
+      summary: Create API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyRequest"
+      responses:
+        "201":
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateApiKeyResponse"
+
+  # =====================================================================
+  # System Endpoints
+  # =====================================================================
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: Check system health and availability
+      security: []
+      responses:
+        "200":
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
+        "503":
+          description: System unhealthy
+
+  /metrics:
+    get:
+      tags: [System]
+      summary: System metrics
+      description: Get system performance metrics (admin only)
+      responses:
+        "200":
+          description: System metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemMetrics"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token obtained from login endpoint
+
+  parameters:
+    WorkflowId:
+      name: workflowId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Unique workflow identifier
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    PerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+    WorkflowType:
+      name: workflow_type
+      in: query
+      schema:
+        $ref: "#/components/schemas/WorkflowType"
+      description: Filter by workflow type
+
+    WorkflowStatus:
+      name: status
+      in: query
+      schema:
+        $ref: "#/components/schemas/WorkflowExecutionStatus"
+      description: Filter by workflow status
+
+    SortBy:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: [created_at, updated_at, name, status]
+        default: created_at
+      description: Sort field
+
+    SortOrder:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      description: Sort order
+
+  schemas:
+    # =====================================================================
+    # Core Domain Types
+    # =====================================================================
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
+        email_verified:
+          type: boolean
+        status:
+          $ref: "#/components/schemas/UserStatus"
+        subscription_tier:
+          $ref: "#/components/schemas/SubscriptionTier"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    WorkflowDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        workflow_type:
+          $ref: "#/components/schemas/WorkflowType"
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStep"
+        status:
+          $ref: "#/components/schemas/WorkflowDefinitionStatus"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WorkflowExecution:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workflow_definition_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        temporal_workflow_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/WorkflowExecutionStatus"
+        progress_percent:
+          type: number
+          minimum: 0
+          maximum: 100
+        current_step:
+          type: string
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_completion:
+          type: string
+          format: date-time
+          nullable: true
+        total_cost_usd:
+          type: number
+          minimum: 0
+        error_message:
+          type: string
+          nullable: true
+
+    WorkflowStep:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        step_type:
+          $ref: "#/components/schemas/StepType"
+        function_name:
+          type: string
+        parameters:
+          type: object
+        dependencies:
+          type: array
+          items:
+            type: string
+            format: uuid
+        retry_config:
+          $ref: "#/components/schemas/RetryConfig"
+        timeout_seconds:
+          type: integer
+          nullable: true
+        order:
+          type: integer
+
+    ProgressUpdate:
+      type: object
+      properties:
+        workflow_execution_id:
+          type: string
+          format: uuid
+        step_name:
+          type: string
+        status:
+          $ref: "#/components/schemas/StepExecutionStatus"
+        progress_percent:
+          type: number
+        message:
+          type: string
+          nullable: true
+        estimated_completion:
+          type: string
+          format: date-time
+          nullable: true
+        cost_so_far:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+
+    MCPServer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        version:
+          type: string
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPTool"
+        auth_required:
+          type: boolean
+        cost_per_request:
+          type: number
+          nullable: true
+        status:
+          $ref: "#/components/schemas/MCPServerStatus"
+        last_health_check:
+          type: string
+          format: date-time
+        success_rate:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    MCPTool:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        input_schema:
+          type: object
+        output_schema:
+          type: object
+          nullable: true
+        cost_per_call:
+          type: number
+          nullable: true
+        average_duration_ms:
+          type: integer
+          nullable: true
+
+    # =====================================================================
+    # Request/Response Types
+    # =====================================================================
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        remember_me:
+          type: boolean
+          default: false
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        token_type:
+          type: string
+          default: Bearer
+        user:
+          $ref: "#/components/schemas/User"
+
+    RegisterRequest:
+      type: object
+      required: [email, username, password]
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          minLength: 8
+        first_name:
+          type: string
+        last_name:
+          type: string
+        subscription_tier:
+          $ref: "#/components/schemas/SubscriptionTier"
+
+    RegisterResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        verification_required:
+          type: boolean
+        message:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+
+    LogoutRequest:
+      type: object
+      properties:
+        session_token:
+          type: string
+        logout_all_sessions:
+          type: boolean
+          default: false
+
+    CreateAutomationRequest:
+      type: object
+      required: [request]
+      properties:
+        request:
+          type: string
+          description: Natural language automation request
+          minLength: 10
+          maxLength: 5000
+        context:
+          type: object
+          nullable: true
+          description: Additional context for the request
+        priority:
+          $ref: "#/components/schemas/WorkflowPriority"
+        client_id:
+          type: string
+          nullable: true
+          description: Client ID for federated requests
+        preferred_providers:
+          type: array
+          items:
+            type: string
+        budget_limit_usd:
+          type: number
+          minimum: 0
+        deadline:
+          type: string
+          format: date-time
+        approval_required:
+          type: boolean
+          default: false
+
+    CreateAutomationResponse:
+      type: object
+      properties:
+        workflow_id:
+          type: string
+          format: uuid
+        execution_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        estimated_duration_seconds:
+          type: integer
+        estimated_cost_usd:
+          type: number
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStep"
+        provider_allocation:
+          $ref: "#/components/schemas/ProviderAllocation"
+        requires_approval:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    WorkflowStatusResponse:
+      type: object
+      properties:
+        execution:
+          $ref: "#/components/schemas/WorkflowExecution"
+        progress_updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgressUpdate"
+        estimated_completion:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateWorkflowRequest:
+      type: object
+      required: [name, workflow_type, steps]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        workflow_type:
+          $ref: "#/components/schemas/WorkflowType"
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStepRequest"
+
+    WorkflowStepRequest:
+      type: object
+      required: [name, step_type, function_name, parameters, order]
+      properties:
+        name:
+          type: string
+        step_type:
+          $ref: "#/components/schemas/StepType"
+        function_name:
+          type: string
+        parameters:
+          type: object
+        dependencies:
+          type: array
+          items:
+            type: string
+            format: uuid
+        retry_config:
+          $ref: "#/components/schemas/RetryConfig"
+        timeout_seconds:
+          type: integer
+        order:
+          type: integer
+
+    CreateWorkflowResponse:
+      type: object
+      properties:
+        workflow:
+          $ref: "#/components/schemas/WorkflowDefinition"
+        message:
+          type: string
+
+    UpdateWorkflowRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStepRequest"
+        status:
+          $ref: "#/components/schemas/WorkflowDefinitionStatus"
+
+    ExecuteWorkflowRequest:
+      type: object
+      properties:
+        input_parameters:
+          type: object
+        priority:
+          $ref: "#/components/schemas/WorkflowPriority"
+        scheduled_at:
+          type: string
+          format: date-time
+        budget_limit_usd:
+          type: number
+
+    ExecuteWorkflowResponse:
+      type: object
+      properties:
+        execution:
+          $ref: "#/components/schemas/WorkflowExecution"
+        message:
+          type: string
+
+    ListWorkflowsResponse:
+      type: object
+      properties:
+        workflows:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowDefinition"
+        total_count:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        has_more:
+          type: boolean
+
+    ProgressResponse:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        current_progress:
+          $ref: "#/components/schemas/ProgressUpdate"
+        recent_updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgressUpdate"
+
+    DashboardMetrics:
+      type: object
+      properties:
+        active_workflows:
+          type: integer
+        completed_workflows:
+          type: integer
+        failed_workflows:
+          type: integer
+        total_cost_usd:
+          type: number
+        success_rate:
+          type: number
+        average_execution_time_seconds:
+          type: number
+
+    WorkflowAnalytics:
+      type: object
+      properties:
+        time_series:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              workflow_count:
+                type: integer
+              success_rate:
+                type: number
+              average_cost:
+                type: number
+        workflow_types:
+          type: array
+          items:
+            type: object
+            properties:
+              workflow_type:
+                $ref: "#/components/schemas/WorkflowType"
+              count:
+                type: integer
+              success_rate:
+                type: number
+
+    CostAnalytics:
+      type: object
+      properties:
+        total_cost:
+          type: number
+        cost_by_provider:
+          type: array
+          items:
+            type: object
+            properties:
+              provider:
+                type: string
+              cost:
+                type: number
+              percentage:
+                type: number
+        cost_trend:
+          type: array
+          items:
+            type: object
+            properties:
+              period:
+                type: string
+              cost:
+                type: number
+
+    RegisterClientRequest:
+      type: object
+      required: [client_name, api_endpoint, capabilities]
+      properties:
+        client_name:
+          type: string
+        api_endpoint:
+          type: string
+          format: uri
+        auth_config:
+          $ref: "#/components/schemas/AuthConfig"
+        mcp_servers:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPServerInfo"
+        capabilities:
+          type: array
+          items:
+            type: string
+        webhook_url:
+          type: string
+          format: uri
+        rate_limits:
+          $ref: "#/components/schemas/RateLimits"
+
+    RegisterClientResponse:
+      type: object
+      properties:
+        client:
+          $ref: "#/components/schemas/ClientInfo"
+        client_secret:
+          type: string
+        registration_status:
+          type: string
+
+    ExecuteMCPToolRequest:
+      type: object
+      required: [tool_name, parameters]
+      properties:
+        tool_name:
+          type: string
+        parameters:
+          type: object
+        timeout_seconds:
+          type: integer
+          default: 30
+
+    ExecuteMCPToolResponse:
+      type: object
+      properties:
+        result:
+          type: object
+        execution_time_ms:
+          type: integer
+        cost_usd:
+          type: number
+          nullable: true
+        success:
+          type: boolean
+        error_message:
+          type: string
+          nullable: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    UserPreferences:
+      type: object
+      properties:
+        preferred_providers:
+          type: array
+          items:
+            type: string
+        budget_constraints:
+          $ref: "#/components/schemas/BudgetConstraints"
+        quality_preferences:
+          $ref: "#/components/schemas/QualityPreferences"
+        notification_preferences:
+          $ref: "#/components/schemas/NotificationPreferences"
+
+    BudgetConstraints:
+      type: object
+      properties:
+        max_cost_per_workflow:
+          type: number
+        max_monthly_spend:
+          type: number
+        cost_approval_threshold:
+          type: number
+
+    QualityPreferences:
+      type: object
+      properties:
+        prefer_quality_over_speed:
+          type: boolean
+        prefer_quality_over_cost:
+          type: boolean
+        minimum_success_rate:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    NotificationPreferences:
+      type: object
+      properties:
+        email_notifications:
+          type: boolean
+        push_notifications:
+          type: boolean
+        webhook_url:
+          type: string
+          format: uri
+        notification_frequency:
+          $ref: "#/components/schemas/NotificationFrequency"
+
+    CreateApiKeyRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        permissions:
+          type: array
+          items:
+            type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    CreateApiKeyResponse:
+      type: object
+      properties:
+        api_key:
+          type: string
+        key_info:
+          $ref: "#/components/schemas/ApiKeyInfo"
+
+    ApiKeyInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        prefix:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_used:
+          type: string
+          format: date-time
+          nullable: true
+
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/HealthStatus"
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ComponentHealth"
+        uptime_seconds:
+          type: integer
+
+    ComponentHealth:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/HealthStatus"
+        response_time_ms:
+          type: integer
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+        last_check:
+          type: string
+          format: date-time
+
+    SystemMetrics:
+      type: object
+      properties:
+        service_metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceMetrics"
+        system_metrics:
+          $ref: "#/components/schemas/SystemResourceMetrics"
+        timestamp:
+          type: string
+          format: date-time
+
+    ServiceMetrics:
+      type: object
+      properties:
+        service_name:
+          type: string
+        requests_total:
+          type: integer
+        requests_per_second:
+          type: number
+        average_response_time_ms:
+          type: number
+        p95_response_time_ms:
+          type: number
+        p99_response_time_ms:
+          type: number
+        error_rate:
+          type: number
+        active_connections:
+          type: integer
+
+    SystemResourceMetrics:
+      type: object
+      properties:
+        cpu_usage_percent:
+          type: number
+        memory_usage_percent:
+          type: number
+        disk_usage_percent:
+          type: number
+        network_bytes_in:
+          type: integer
+        network_bytes_out:
+          type: integer
+        active_connections:
+          type: integer
+
+    # =====================================================================
+    # Supporting Types
+    # =====================================================================
+    RetryConfig:
+      type: object
+      properties:
+        max_attempts:
+          type: integer
+          default: 3
+        initial_delay_ms:
+          type: integer
+          default: 1000
+        max_delay_ms:
+          type: integer
+          default: 30000
+        backoff_multiplier:
+          type: number
+          default: 2.0
+
+    ProviderAllocation:
+      type: object
+      properties:
+        providers:
+          type: object
+          additionalProperties:
+            type: number
+        total_estimated_cost:
+          type: number
+        cost_breakdown:
+          type: object
+          additionalProperties:
+            type: number
+        fallback_chain:
+          type: array
+          items:
+            type: string
+
+    AuthConfig:
+      type: object
+      discriminator:
+        propertyName: type
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [api_key]
+            key:
+              type: string
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [oauth2]
+            client_id:
+              type: string
+            client_secret:
+              type: string
+            redirect_uri:
+              type: string
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [bearer]
+            token:
+              type: string
+
+    RateLimits:
+      type: object
+      properties:
+        requests_per_minute:
+          type: integer
+          default: 60
+        requests_per_hour:
+          type: integer
+          default: 1000
+        requests_per_day:
+          type: integer
+        burst_limit:
+          type: integer
+
+    ClientInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        client_id:
+          type: string
+        client_name:
+          type: string
+        api_endpoint:
+          type: string
+          format: uri
+        capabilities:
+          type: array
+          items:
+            type: string
+        status:
+          $ref: "#/components/schemas/ClientStatus"
+        last_health_check:
+          type: string
+          format: date-time
+        total_requests:
+          type: integer
+        success_rate:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    MCPServerInfo:
+      type: object
+      properties:
+        server_id:
+          type: string
+        server_name:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        version:
+          type: string
+        tools:
+          type: array
+          items:
+            $ref: "#/components/schemas/MCPTool"
+        auth_required:
+          type: boolean
+        cost_per_request:
+          type: number
+
+    # =====================================================================
+    # Generic Response Types
+    # =====================================================================
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ApiError"
+        success:
+          type: boolean
+          default: false
+        request_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        request_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationError"
+        success:
+          type: boolean
+          default: false
+        message:
+          type: string
+        request_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+        value:
+          nullable: true
+
+    # =====================================================================
+    # Enums
+    # =====================================================================
+    UserStatus:
+      type: string
+      enum: [active, suspended, deleted]
+
+    SubscriptionTier:
+      type: string
+      enum: [free, pro, enterprise]
+
+    WorkflowType:
+      type: string
+      enum:
+        [
+          content_creation,
+          marketing_campaign,
+          scheduled_publishing,
+          ecommerce_automation,
+          web_development,
+          analytics,
+          hybrid,
+          custom,
+        ]
+
+    WorkflowDefinitionStatus:
+      type: string
+      enum: [draft, active, paused, archived]
+
+    WorkflowExecutionStatus:
+      type: string
+      enum: [queued, running, paused, completed, failed, cancelled, timed_out]
+
+    StepType:
+      type: string
+      enum:
+        [
+          content_creation,
+          marketing_campaign,
+          scheduling_publishing,
+          ecommerce_operation,
+          client_integration,
+          analytics,
+          notification,
+          data_transformation,
+        ]
+
+    StepExecutionStatus:
+      type: string
+      enum: [pending, running, completed, failed, skipped, retrying]
+
+    WorkflowPriority:
+      type: string
+      enum: [low, normal, high, urgent]
+
+    MCPServerStatus:
+      type: string
+      enum: [active, inactive, maintenance, error]
+
+    ClientStatus:
+      type: string
+      enum: [active, inactive, suspended, pending]
+
+    HealthStatus:
+      type: string
+      enum: [healthy, degraded, unhealthy]
+
+    NotificationFrequency:
+      type: string
+      enum: [real_time, hourly, daily, weekly, on_completion_only]
+
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+
+    ForbiddenError:
+      description: Insufficient permissions for this operation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFoundError:
+      description: The requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+
+    RateLimitError:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Requests remaining in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when window resets
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"

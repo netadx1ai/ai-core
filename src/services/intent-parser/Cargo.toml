@@ -1,0 +1,63 @@
+[package]
+name = "intent-parser-service"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI-CORE Team"]
+description = "Intelligent intent parsing service for automation workflows"
+license = "MIT"
+
+[[bin]]
+name = "intent-parser"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+
+# Redis
+redis = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+
+# Logging and tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Configuration
+hostname = "0.3"
+
+# JWT handling
+jsonwebtoken = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.6"
+tempfile = "3.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+debug = true

@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH recent_calculations AS (\n                SELECT slo_id, current_percentage, calculated_at,\n                       LAG(current_percentage) OVER (PARTITION BY slo_id ORDER BY calculated_at) as prev_percentage,\n                       LAG(calculated_at) OVER (PARTITION BY slo_id ORDER BY calculated_at) as prev_calculated_at\n                FROM slo_calculations\n                WHERE calculated_at > NOW() - INTERVAL '6 hours'\n            ),\n            burn_rates AS (\n                SELECT rc.slo_id, rc.current_percentage, rc.calculated_at,\n                       CASE\n                           WHEN rc.prev_percentage IS NOT NULL AND rc.prev_calculated_at IS NOT NULL\n                           THEN (rc.prev_percentage - rc.current_percentage) /\n                                EXTRACT(EPOCH FROM (rc.calculated_at - rc.prev_calculated_at)) * 3600\n                           ELSE 0\n                       END as burn_rate_per_hour\n                FROM recent_calculations rc\n                WHERE rc.prev_percentage IS NOT NULL\n            )\n            SELECT br.slo_id, br.current_percentage, br.burn_rate_per_hour, br.calculated_at,\n                   s.name, s.service_name, s.target_percentage\n            FROM burn_rates br\n            JOIN slos s ON br.slo_id = s.id\n            WHERE br.burn_rate_per_hour > 5.0  -- More than 5% degradation per hour\n            AND s.status = 'active'\n            ORDER BY br.burn_rate_per_hour DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slo_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "current_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "burn_rate_per_hour",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "calculated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "target_percentage",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d89cc2a151ca6df01283f5740fc8f89bb7a29990d99f521fd2d32a1f87165a81"
+}

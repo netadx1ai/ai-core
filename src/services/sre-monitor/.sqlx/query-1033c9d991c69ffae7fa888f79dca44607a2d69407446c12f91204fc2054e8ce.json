@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO alerts (id, service_name, alert_type, severity, message, status, created_at, metadata)\n        VALUES ($1, $2, $3, $4, $5, 'active', $6, $7)\n        RETURNING id, service_name, alert_type, severity, message, status,\n                  created_at, resolved_at, metadata\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "alert_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "severity",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "resolved_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "1033c9d991c69ffae7fa888f79dca44607a2d69407446c12f91204fc2054e8ce"
+}

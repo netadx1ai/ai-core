@@ -1,0 +1,56 @@
+[package]
+name = "ai-core-mvp-demo"
+version = "0.1.0"
+edition = "2021"
+authors = ["AI-CORE MVP Team"]
+description = "Complete MVP demonstration orchestrator for AI-CORE platform"
+license = "MIT"
+
+[[bin]]
+name = "mvp-demo"
+path = "src/main.rs"
+
+[dependencies]
+# Web framework
+axum = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Database (for demo we'll use in-memory)
+sqlx = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Logging and tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# Configuration
+clap = { workspace = true }
+
+# Async utilities
+futures = { workspace = true }
+
+# WebSocket for real-time updates
+tokio-tungstenite = "0.21"
+
+# Random for demo data
+rand = "0.8"
+fake = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"

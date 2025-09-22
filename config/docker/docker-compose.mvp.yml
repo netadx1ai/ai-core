@@ -1,0 +1,244 @@
+# AI-CORE MVP Docker Compose
+# Core services for 10-hour Early Launch MVP demonstration
+version: '3.8'
+
+services:
+  # Core databases (already running in docker-compose.dev.yml)
+
+  # Simple Federation Service
+  federation-simple:
+    build:
+      context: ./src/services/federation-simple
+      dockerfile: Dockerfile
+    container_name: ai-core-federation
+    ports:
+      - "8801:8801"
+    environment:
+      - RUST_LOG=info
+      - PORT=8801
+      - HOST=0.0.0.0
+      - INTENT_PARSER_URL=http://intent-parser:8802
+      - MCP_MANAGER_URL=http://mcp-manager:8803
+    depends_on:
+      - intent-parser
+      - mcp-manager
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8801/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Simple Intent Parser Service
+  intent-parser:
+    build:
+      context: ./src/services/intent-parser-simple
+      dockerfile: Dockerfile
+    container_name: ai-core-intent-parser
+    ports:
+      - "8802:8802"
+    environment:
+      - RUST_LOG=info
+      - PORT=8802
+      - HOST=0.0.0.0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-demo-key}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-demo-key}
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8802/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Simple MCP Manager Service
+  mcp-manager:
+    build:
+      context: ./src/services/mcp-manager-simple
+      dockerfile: Dockerfile
+    container_name: ai-core-mcp-manager
+    ports:
+      - "8803:8803"
+    environment:
+      - RUST_LOG=info
+      - PORT=8803
+      - HOST=0.0.0.0
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8803/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Built-in Content Generation MCP
+  content-mcp:
+    build:
+      context: ./src/services/content-mcp-simple
+      dockerfile: Dockerfile
+    container_name: ai-core-content-mcp
+    ports:
+      - "8804:8804"
+    environment:
+      - RUST_LOG=info
+      - PORT=8804
+      - HOST=0.0.0.0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-demo-key}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-demo-key}
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8804/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Built-in Text Processing MCP
+  text-processing-mcp:
+    build:
+      context: ./src/services/text-processing-mcp-simple
+      dockerfile: Dockerfile
+    container_name: ai-core-text-processing-mcp
+    ports:
+      - "8805:8805"
+    environment:
+      - RUST_LOG=info
+      - PORT=8805
+      - HOST=0.0.0.0
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8805/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # External Image Generation MCP (Python)
+  image-generation-mcp:
+    build:
+      context: ./external-mcps/image-generation
+      dockerfile: Dockerfile
+    container_name: ai-core-image-mcp
+    ports:
+      - "8806:8806"
+    environment:
+      - PORT=8806
+      - HOST=0.0.0.0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-demo-key}
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8806/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # External Calendar Management MCP (Node.js)
+  calendar-mcp:
+    build:
+      context: ./external-mcps/calendar
+      dockerfile: Dockerfile
+    container_name: ai-core-calendar-mcp
+    ports:
+      - "8807:8807"
+    environment:
+      - PORT=8807
+      - HOST=0.0.0.0
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-demo-id}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-demo-secret}
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8807/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # External Facebook Posting MCP (Python)
+  facebook-mcp:
+    build:
+      context: ./external-mcps/facebook
+      dockerfile: Dockerfile
+    container_name: ai-core-facebook-mcp
+    ports:
+      - "8808:8808"
+    environment:
+      - PORT=8808
+      - HOST=0.0.0.0
+      - FACEBOOK_ACCESS_TOKEN=${FACEBOOK_ACCESS_TOKEN:-demo-token}
+      - FACEBOOK_PAGE_ID=${FACEBOOK_PAGE_ID:-demo-page}
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8808/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Demo Web Interface
+  demo-ui:
+    build:
+      context: ./demo2/frontend
+      dockerfile: Dockerfile
+    container_name: ai-core-demo-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8801
+      - REACT_APP_WS_URL=ws://localhost:8801
+    depends_on:
+      - federation-simple
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+
+  # Service Registry and Health Monitor
+  service-monitor:
+    image: nginx:alpine
+    container_name: ai-core-monitor
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infrastructure/nginx/monitor.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/health-dashboard.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - federation-simple
+      - intent-parser
+      - mcp-manager
+      - content-mcp
+      - text-processing-mcp
+      - image-generation-mcp
+      - calendar-mcp
+      - facebook-mcp
+    networks:
+      - ai-core-network
+    restart: unless-stopped
+
+networks:
+  ai-core-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  service-logs:
+    driver: local
+
+# Environment variables for MVP demo
+# Create .env file with:
+# OPENAI_API_KEY=your_openai_key
+# ANTHROPIC_API_KEY=your_anthropic_key
+# GOOGLE_CLIENT_ID=your_google_client_id
+# GOOGLE_CLIENT_SECRET=your_google_client_secret
+# FACEBOOK_ACCESS_TOKEN=your_facebook_token
+# FACEBOOK_PAGE_ID=your_facebook_page_id

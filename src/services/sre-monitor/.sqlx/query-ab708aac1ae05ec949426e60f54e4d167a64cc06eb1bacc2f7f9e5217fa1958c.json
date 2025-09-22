@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM slo_calculations WHERE calculated_at < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ab708aac1ae05ec949426e60f54e4d167a64cc06eb1bacc2f7f9e5217fa1958c"
+}

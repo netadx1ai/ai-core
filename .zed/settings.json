@@ -1,0 +1,169 @@
+{
+    "assistant": {
+        "version": "2",
+        "default_model": {
+            "provider": "zed.dev",
+            "model": "claude-sonnet-4"
+        },
+        "profiles": {
+            "Write": {
+                "tools": [
+                    "diagnostics",
+                    "fetch",
+                    "find_path",
+                    "grep",
+                    "list_directory",
+                    "now",
+                    "open",
+                    "read_file",
+                    "thinking",
+                    "sequentialthinking",
+                    "web_search",
+                    "copy_path",
+                    "create_directory",
+                    "edit_file",
+                    "delete_path",
+                    "move_path",
+                    "terminal"
+                ]
+            },
+            "Ask": {
+                "tools": [
+                    "diagnostics",
+                    "fetch",
+                    "find_path",
+                    "grep",
+                    "list_directory",
+                    "now",
+                    "read_file",
+                    "thinking",
+                    "sequentialthinking",
+                    "web_search"
+                ]
+            },
+            "Minimal": {
+                "tools": []
+            },
+            "AI-CORE-Dev": {
+                "name": "AI-CORE Development",
+                "description": "Custom profile for AI-CORE project development with FAANG-enhanced standards",
+                "tools": [
+                    "diagnostics",
+                    "fetch",
+                    "find_path",
+                    "grep",
+                    "list_directory",
+                    "now",
+                    "open",
+                    "read_file",
+                    "thinking",
+                    "sequentialthinking",
+                    "web_search",
+                    "copy_path",
+                    "create_directory",
+                    "edit_file",
+                    "delete_path",
+                    "move_path",
+                    "terminal"
+                ]
+            }
+        },
+        "default_profile": "AI-CORE-Dev",
+        "always_allow_tool_actions": false,
+        "notify_when_agent_waiting": true,
+        "play_sound_when_agent_done": true
+    },
+    "agent": {
+        "notify_when_agent_waiting": "all_screens",
+        "play_sound_when_agent_done": true,
+        "always_allow_tool_actions": false
+    },
+    "terminal": {
+        "working_directory": "current_project_directory",
+        "shell": {
+            "program": "zsh"
+        }
+    },
+    "languages": {
+        "Rust": {
+            "code_actions_on_format": {
+                "source.organizeImports": true,
+                "source.fixAll": true
+            },
+            "formatter": {
+                "external": {
+                    "command": "rustfmt",
+                    "arguments": ["--edition", "2021"]
+                }
+            }
+        },
+        "TypeScript": {
+            "code_actions_on_format": {
+                "source.organizeImports": true,
+                "source.fixAll.eslint": true
+            }
+        },
+        "JavaScript": {
+            "code_actions_on_format": {
+                "source.organizeImports": true,
+                "source.fixAll.eslint": true
+            }
+        }
+    },
+    "lsp": {
+        "rust-analyzer": {},
+        "typescript-language-server": {
+            "settings": {
+                "typescript": {
+                    "preferences": {
+                        "includePackageJsonAutoImports": "auto"
+                    }
+                }
+            }
+        }
+    },
+    "git": {
+        "git_gutter": "tracked_files",
+        "inline_blame": {
+            "enabled": true
+        }
+    },
+    "project_panel": {
+        "dock": "left",
+        "default_width": 300
+    },
+    "outline_panel": {
+        "dock": "right",
+        "default_width": 300
+    },
+    "collaboration_panel": {
+        "dock": "left"
+    },
+    "chat_panel": {
+        "dock": "right"
+    },
+    "notification_panel": {
+        "dock": "right"
+    },
+    "telemetry": {
+        "diagnostics": true,
+        "metrics": false
+    },
+    "ui_font_size": 14,
+    "buffer_font_size": 13,
+    "theme": {
+        "mode": "system",
+        "light": "One Light",
+        "dark": "One Dark"
+    },
+    "auto_update": true,
+    "vim_mode": false,
+    "soft_wrap": "editor_width",
+    "show_whitespaces": "selection",
+    "tab_size": 4,
+    "hard_tabs": false,
+    "preferred_line_length": 120,
+    "format_on_save": "on",
+    "autosave": "on_focus_change",
+    "auto_signature_help": true
+}

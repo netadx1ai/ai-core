@@ -1,0 +1,144 @@
+# MCP Manager Service Configuration
+# This file contains all configuration settings for the MCP Manager Service
+
+environment: "development"
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8083
+  max_connections: 1000
+  timeout_seconds: 30
+  keep_alive_seconds: 60
+  graceful_shutdown: true
+  shutdown_timeout_seconds: 30
+  worker_threads: 0  # 0 = auto-detect
+  enable_http2: true
+  enable_compression: true
+  cors:
+    allowed_origins: ["*"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Content-Type", "Authorization", "X-Requested-With"]
+    allow_credentials: true
+    max_age_seconds: 3600
+
+# Database configuration
+database:
+  host: "localhost"
+  port: 5432
+  database: "mcp_manager"
+  username: "postgres"
+  password: "password"
+  pool_size: 10
+  timeout_seconds: 30
+  ssl_mode: "prefer"
+
+# Redis configuration
+redis:
+  url: "redis://localhost:6379"
+  pool_size: 10
+  timeout_seconds: 5
+  key_prefix: "mcp_manager"
+  default_ttl_seconds: 3600
+
+# MCP-specific configuration
+mcp:
+  max_servers: 100
+  default_timeout_seconds: 30
+  protocol_version: "2024-11-05"
+  startup_timeout_seconds: 30
+  shutdown_timeout_seconds: 15
+  auto_restart: true
+  max_restart_attempts: 3
+  restart_backoff_seconds: 5
+  discovery:
+    enabled: false
+    interval_seconds: 60
+    sources: []
+    timeout_seconds: 10
+  server_defaults: {}
+
+# Health monitoring configuration
+health:
+  enabled: true
+  check_interval_seconds: 30
+  check_timeout_seconds: 5
+  failure_threshold: 3
+  success_threshold: 2
+  detailed_metrics: true
+  endpoints: ["/health", "/status"]
+
+# Load balancer configuration
+load_balancer:
+  strategy: "round_robin"  # round_robin, least_connections, weighted_round_robin, random, ip_hash, consistent_hash
+  sticky_sessions: false
+  session_timeout_seconds: 1800
+  max_requests_per_server: 1000
+  circuit_breaker: true
+  circuit_breaker_config:
+    failure_threshold: 50  # percentage
+    min_requests: 10
+    window_seconds: 60
+    recovery_timeout_seconds: 30
+
+# Security configuration
+security:
+  jwt_enabled: false
+  jwt_secret: "your-secret-key-here-change-in-production"
+  jwt_expiration_seconds: 3600
+  api_key_enabled: false
+  api_keys: []
+  https_only: false
+  tls_cert_path: null
+  tls_key_path: null
+
+# Logging configuration
+logging:
+  level: "info"  # trace, debug, info, warn, error
+  format: "json"  # json, pretty, compact
+  console: true
+  file_enabled: false
+  file_path: null
+  file_max_size_mb: 100
+  file_max_files: 5
+  structured: true
+  fields: {}
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 9093
+  path: "/metrics"
+  prometheus_enabled: true
+  collection_interval_seconds: 15
+  custom_metrics: true
+  labels:
+    service: "mcp-manager"
+    version: "1.0.0"
+
+# Rate limiting configuration
+rate_limiting:
+  enabled: true
+  global_rps: 1000
+  per_ip_rps: 100
+  window_seconds: 60
+  burst_enabled: true
+  burst_capacity: 50
+
+# Integration configurations
+integrations:
+  intent_parser:
+    url: "http://localhost:8082"
+    timeout_seconds: 30
+    auth_enabled: false
+    api_key: null
+    health_check_enabled: true
+    health_check_interval_seconds: 60
+
+  api_gateway:
+    url: "http://localhost:8080"
+    timeout_seconds: 30
+    auth_enabled: false
+    api_key: null
+
+  external_services: {}

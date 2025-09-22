@@ -1,0 +1,621 @@
+{
+  "apiDocumentation": {
+    "title": "AI-CORE Client Integration API Examples",
+    "version": "1.0.0",
+    "description": "Comprehensive JSON examples for AI-CORE client-app integration",
+    "baseUrl": "http://localhost:8090/v1",
+    "websocketUrl": "ws://localhost:8091"
+  },
+  "authentication": {
+    "type": "API Key",
+    "header": "X-API-Key",
+    "example": "mock-api-key"
+  },
+  "endpoints": {
+    "health": {
+      "method": "GET",
+      "url": "/health",
+      "description": "Health check endpoint",
+      "example_response": {
+        "status": "healthy",
+        "version": "1.0.0",
+        "timestamp": "2025-09-12T21:30:00.000Z",
+        "services": {
+          "api": "operational",
+          "websocket": "operational",
+          "database": "mocked"
+        }
+      }
+    },
+    "createWorkflow": {
+      "method": "POST",
+      "url": "/v1/workflows",
+      "description": "Create a new workflow for content generation",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-API-Key": "mock-api-key"
+      },
+      "example_request": {
+        "title": "AI Automation Blog Post",
+        "definition": "Create a comprehensive blog post about AI automation trends and their impact on modern business operations, including SEO optimization and social media content",
+        "workflow_type": "blog-post-social",
+        "config": {
+          "client_demo": true,
+          "real_time_updates": true,
+          "target_audience": "business professionals",
+          "tone": "professional",
+          "word_count_target": 800
+        }
+      },
+      "example_response": {
+        "workflow_id": "wf_1757696823888_abc12345",
+        "status": "starting",
+        "message": "Workflow created successfully",
+        "estimated_duration": 25000,
+        "created_at": "2025-09-12T21:30:00.000Z"
+      }
+    },
+    "getWorkflowStatus": {
+      "method": "GET",
+      "url": "/v1/workflows/{workflow_id}",
+      "description": "Get current status and results of a workflow",
+      "example_response_in_progress": {
+        "workflow_id": "wf_1757696823888_abc12345",
+        "title": "AI Automation Blog Post",
+        "definition": "Create a comprehensive blog post about AI automation trends...",
+        "workflow_type": "blog-post-social",
+        "status": "executing_workflow",
+        "progress": 60,
+        "current_step": "Content Generation",
+        "created_at": "2025-09-12T21:30:00.000Z",
+        "updated_at": "2025-09-12T21:30:45.000Z",
+        "steps": [
+          {
+            "id": "intent-parsing",
+            "name": "Intent Parsing",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:01.000Z",
+            "completed_at": "2025-09-12T21:30:03.000Z",
+            "duration_ms": 2000,
+            "details": "Successfully parsed user intent and extracted requirements"
+          },
+          {
+            "id": "workflow-creation",
+            "name": "Workflow Creation",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:03.000Z",
+            "completed_at": "2025-09-12T21:30:06.000Z",
+            "duration_ms": 3000,
+            "details": "Created optimized workflow plan with 6 steps"
+          },
+          {
+            "id": "content-generation",
+            "name": "Content Generation",
+            "status": "active",
+            "started_at": "2025-09-12T21:30:06.000Z",
+            "completed_at": null,
+            "duration_ms": null,
+            "details": "Generating high-quality blog content using AI models"
+          },
+          {
+            "id": "image-creation",
+            "name": "Image Creation",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_ms": null,
+            "details": "Will create featured image and supporting visuals"
+          },
+          {
+            "id": "quality-validation",
+            "name": "Quality Validation",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_ms": null,
+            "details": "Will validate content quality and SEO optimization"
+          },
+          {
+            "id": "final-processing",
+            "name": "Final Processing",
+            "status": "pending",
+            "started_at": null,
+            "completed_at": null,
+            "duration_ms": null,
+            "details": "Will perform final formatting and delivery preparation"
+          }
+        ],
+        "metadata": {
+          "client_id": "mock-client",
+          "session_id": "sess_abc123def456",
+          "user_agent": "AI-CORE-Client-Integration/1.0.0",
+          "created_at": "2025-09-12T21:30:00.000Z",
+          "updated_at": "2025-09-12T21:30:45.000Z",
+          "federation_nodes": [
+            {
+              "id": "intent-parser",
+              "name": "Intent Parser",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:03.000Z",
+              "response_time_ms": 234
+            },
+            {
+              "id": "workflow-engine",
+              "name": "Workflow Engine",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:06.000Z",
+              "response_time_ms": 156
+            },
+            {
+              "id": "content-mcp",
+              "name": "Content MCP",
+              "status": "active",
+              "last_active": "2025-09-12T21:30:45.000Z",
+              "response_time_ms": 892
+            },
+            {
+              "id": "image-mcp",
+              "name": "Image MCP",
+              "status": "idle",
+              "last_active": "2025-09-12T21:30:00.000Z",
+              "response_time_ms": null
+            },
+            {
+              "id": "publishing-mcp",
+              "name": "Publishing MCP",
+              "status": "idle",
+              "last_active": "2025-09-12T21:30:00.000Z",
+              "response_time_ms": null
+            }
+          ]
+        }
+      },
+      "example_response_completed": {
+        "workflow_id": "wf_1757696823888_abc12345",
+        "title": "AI Automation Blog Post",
+        "definition": "Create a comprehensive blog post about AI automation trends...",
+        "workflow_type": "blog-post-social",
+        "status": "completed",
+        "progress": 100,
+        "current_step": "Completed",
+        "created_at": "2025-09-12T21:30:00.000Z",
+        "updated_at": "2025-09-12T21:30:51.000Z",
+        "completed_at": "2025-09-12T21:30:51.000Z",
+        "steps": [
+          {
+            "id": "intent-parsing",
+            "name": "Intent Parsing",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:01.000Z",
+            "completed_at": "2025-09-12T21:30:03.000Z",
+            "duration_ms": 2000
+          },
+          {
+            "id": "workflow-creation",
+            "name": "Workflow Creation",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:03.000Z",
+            "completed_at": "2025-09-12T21:30:06.000Z",
+            "duration_ms": 3000
+          },
+          {
+            "id": "content-generation",
+            "name": "Content Generation",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:06.000Z",
+            "completed_at": "2025-09-12T21:30:14.000Z",
+            "duration_ms": 8000
+          },
+          {
+            "id": "image-creation",
+            "name": "Image Creation",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:14.000Z",
+            "completed_at": "2025-09-12T21:30:19.000Z",
+            "duration_ms": 5000
+          },
+          {
+            "id": "quality-validation",
+            "name": "Quality Validation",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:19.000Z",
+            "completed_at": "2025-09-12T21:30:21.000Z",
+            "duration_ms": 2000
+          },
+          {
+            "id": "final-processing",
+            "name": "Final Processing",
+            "status": "completed",
+            "started_at": "2025-09-12T21:30:21.000Z",
+            "completed_at": "2025-09-12T21:30:22.000Z",
+            "duration_ms": 1000
+          }
+        ],
+        "results": {
+          "content": {
+            "title": "The Future of AI Automation: Transforming Business Operations",
+            "content": "<h1>The Future of AI Automation: Transforming Business Operations</h1>\n\n<p>Artificial Intelligence automation is revolutionizing how businesses operate, streamlining processes and enhancing productivity across industries. As we move into an era where digital transformation is not just advantageous but essential, AI automation stands at the forefront of this evolution.</p>\n\n<h2>Key Benefits of AI Automation</h2>\n\n<ul>\n<li><strong>Enhanced Efficiency:</strong> Automated processes can handle repetitive tasks 24/7 without human intervention</li>\n<li><strong>Reduced Errors:</strong> AI systems minimize human error in data processing and decision-making</li>\n<li><strong>Cost Optimization:</strong> Significant reduction in operational costs through process optimization</li>\n<li><strong>Scalability:</strong> Easy scaling of operations without proportional increase in resources</li>\n</ul>\n\n<h2>Industry Applications</h2>\n\n<p>From manufacturing to healthcare, AI automation is making significant impacts:</p>\n\n<ul>\n<li><strong>Manufacturing:</strong> Predictive maintenance and quality control</li>\n<li><strong>Finance:</strong> Automated trading and fraud detection</li>\n<li><strong>Healthcare:</strong> Medical imaging analysis and patient monitoring</li>\n<li><strong>Retail:</strong> Inventory management and personalized customer experiences</li>\n</ul>\n\n<h2>The Road Ahead</h2>\n\n<p>As AI technology continues to evolve, we can expect even more sophisticated automation solutions. The integration of machine learning, natural language processing, and robotics will create unprecedented opportunities for business transformation.</p>\n\n<p>Companies that embrace AI automation today will be better positioned to compete in tomorrow's digital economy. The question is not whether to adopt AI automation, but how quickly and effectively it can be implemented.</p>",
+            "summary": "AI automation is transforming business operations by enhancing efficiency, reducing errors, optimizing costs, and providing scalability across various industries including manufacturing, finance, healthcare, and retail.",
+            "word_count": 324,
+            "reading_time": 2,
+            "seo_keywords": [
+              "AI automation",
+              "business transformation",
+              "digital transformation",
+              "artificial intelligence",
+              "process optimization",
+              "machine learning"
+            ],
+            "featured_image_url": "https://images.unsplash.com/photo-1555255707-c07966088b7b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1932&q=80",
+            "meta_description": "Discover how AI automation is revolutionizing business operations, driving efficiency, and creating competitive advantages across industries.",
+            "tags": [
+              "AI",
+              "Automation",
+              "Business",
+              "Technology",
+              "Innovation"
+            ]
+          },
+          "images": [
+            {
+              "url": "https://images.unsplash.com/photo-1555255707-c07966088b7b?ixlib=rb-4.0.3",
+              "alt_text": "Modern AI automation technology in business environment",
+              "caption": "AI automation transforming modern business operations",
+              "width": 1932,
+              "height": 1288,
+              "format": "JPEG",
+              "size_bytes": 245760
+            }
+          ],
+          "metadata": {
+            "generated_at": "2025-09-12T21:30:51.000Z",
+            "model_used": "GPT-4-Turbo",
+            "tokens_consumed": 1247,
+            "cost_usd": 0.55,
+            "processing_time_ms": 21000
+          },
+          "quality_score": 4.7,
+          "execution_metrics": {
+            "total_duration_ms": 21000,
+            "api_calls_made": 8,
+            "tokens_consumed": 1247,
+            "cost_breakdown": {
+              "text_generation": 0.42,
+              "image_generation": 0.08,
+              "api_calls": 0.05,
+              "total": 0.55
+            },
+            "performance_score": 94
+          }
+        },
+        "metadata": {
+          "client_id": "mock-client",
+          "session_id": "sess_abc123def456",
+          "user_agent": "AI-CORE-Client-Integration/1.0.0",
+          "created_at": "2025-09-12T21:30:00.000Z",
+          "updated_at": "2025-09-12T21:30:51.000Z",
+          "federation_nodes": [
+            {
+              "id": "intent-parser",
+              "name": "Intent Parser",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:03.000Z",
+              "response_time_ms": 234
+            },
+            {
+              "id": "workflow-engine",
+              "name": "Workflow Engine",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:06.000Z",
+              "response_time_ms": 156
+            },
+            {
+              "id": "content-mcp",
+              "name": "Content MCP",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:14.000Z",
+              "response_time_ms": 892
+            },
+            {
+              "id": "image-mcp",
+              "name": "Image MCP",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:19.000Z",
+              "response_time_ms": 1123
+            },
+            {
+              "id": "publishing-mcp",
+              "name": "Publishing MCP",
+              "status": "completed",
+              "last_active": "2025-09-12T21:30:22.000Z",
+              "response_time_ms": 445
+            }
+          ]
+        }
+      }
+    },
+    "getMetrics": {
+      "method": "GET",
+      "url": "/v1/metrics",
+      "description": "Get client performance metrics and statistics",
+      "example_response": {
+        "total_requests": 156,
+        "successful_requests": 147,
+        "failed_requests": 9,
+        "average_execution_time_ms": 23500,
+        "average_quality_score": 4.5,
+        "total_cost_usd": 85.80,
+        "cost_savings_usd": 1942.20,
+        "uptime_percentage": 99.8,
+        "last_updated": "2025-09-12T21:30:51.000Z"
+      }
+    },
+    "listWorkflows": {
+      "method": "GET",
+      "url": "/v1/workflows",
+      "description": "List all workflows with pagination",
+      "query_parameters": {
+        "page": 1,
+        "per_page": 50,
+        "status": "completed|failed|in_progress",
+        "workflow_type": "blog-post-social|email-newsletter|custom"
+      },
+      "example_response": {
+        "workflows": [
+          {
+            "workflow_id": "wf_1757696823888_abc12345",
+            "title": "AI Automation Blog Post",
+            "status": "completed",
+            "progress": 100,
+            "workflow_type": "blog-post-social",
+            "created_at": "2025-09-12T21:30:00.000Z",
+            "updated_at": "2025-09-12T21:30:51.000Z"
+          },
+          {
+            "workflow_id": "wf_1757696823777_def67890",
+            "title": "Social Media Campaign",
+            "status": "in_progress",
+            "progress": 75,
+            "workflow_type": "social-media-campaign",
+            "created_at": "2025-09-12T21:25:00.000Z",
+            "updated_at": "2025-09-12T21:30:45.000Z"
+          }
+        ],
+        "total": 156,
+        "page": 1,
+        "per_page": 50,
+        "has_more": true
+      }
+    }
+  },
+  "websocket": {
+    "description": "Real-time workflow updates via WebSocket connection",
+    "url": "ws://localhost:8091",
+    "events": [
+      {
+        "type": "connection_established",
+        "description": "Sent when WebSocket connection is established",
+        "example": {
+          "type": "connection_established",
+          "data": {
+            "client_id": "ws_client_abc123"
+          },
+          "timestamp": "2025-09-12T21:30:00.000Z"
+        }
+      },
+      {
+        "type": "workflow_started",
+        "description": "Sent when workflow execution begins",
+        "example": {
+          "type": "workflow_started",
+          "workflow_id": "wf_1757696823888_abc12345",
+          "data": {
+            "message": "Workflow execution started"
+          },
+          "timestamp": "2025-09-12T21:30:01.000Z"
+        }
+      },
+      {
+        "type": "step_updated",
+        "description": "Sent when a workflow step starts or completes",
+        "example": {
+          "type": "step_updated",
+          "workflow_id": "wf_1757696823888_abc12345",
+          "data": {
+            "step_name": "Content Generation",
+            "step_id": "content-generation",
+            "status": "active",
+            "progress": 60
+          },
+          "timestamp": "2025-09-12T21:30:06.000Z"
+        }
+      },
+      {
+        "type": "progress_updated",
+        "description": "Sent with overall workflow progress updates",
+        "example": {
+          "type": "progress_updated",
+          "workflow_id": "wf_1757696823888_abc12345",
+          "data": {
+            "progress": 75,
+            "current_step": "Image Creation",
+            "estimated_remaining": 6000
+          },
+          "timestamp": "2025-09-12T21:30:14.000Z"
+        }
+      },
+      {
+        "type": "log_entry",
+        "description": "Sent with detailed execution logs",
+        "example": {
+          "type": "log_entry",
+          "workflow_id": "wf_1757696823888_abc12345",
+          "data": {
+            "message": "✅ Content Generation completed successfully",
+            "level": "success",
+            "details": {
+              "step_id": "content-generation",
+              "duration_ms": 8000,
+              "status": "completed",
+              "word_count": 324,
+              "quality_score": 4.7
+            }
+          },
+          "timestamp": "2025-09-12T21:30:14.000Z"
+        }
+      },
+      {
+        "type": "workflow_completed",
+        "description": "Sent when workflow finishes successfully",
+        "example": {
+          "type": "workflow_completed",
+          "workflow_id": "wf_1757696823888_abc12345",
+          "data": {
+            "message": "Workflow completed successfully!",
+            "results": {
+              "content": {
+                "title": "The Future of AI Automation: Transforming Business Operations",
+                "word_count": 324,
+                "quality_score": 4.7
+              },
+              "execution_metrics": {
+                "total_duration_ms": 21000,
+                "cost_breakdown": {
+                  "total": 0.55
+                }
+              }
+            }
+          },
+          "timestamp": "2025-09-12T21:30:51.000Z"
+        }
+      },
+      {
+        "type": "workflow_failed",
+        "description": "Sent when workflow encounters an error",
+        "example": {
+          "type": "workflow_failed",
+          "workflow_id": "wf_1757696823888_abc12345",
+          "data": {
+            "message": "Workflow execution failed",
+            "error": {
+              "code": "CONTENT_GENERATION_ERROR",
+              "message": "Failed to generate content due to API rate limit",
+              "step": "content-generation",
+              "recoverable": true
+            }
+          },
+          "timestamp": "2025-09-12T21:30:14.000Z"
+        }
+      }
+    ]
+  },
+  "errorResponses": {
+    "validation_error": {
+      "status": 400,
+      "example": {
+        "error": "validation_error",
+        "message": "Definition is required",
+        "details": {
+          "field": "definition",
+          "code": "required"
+        },
+        "timestamp": "2025-09-12T21:30:00.000Z"
+      }
+    },
+    "not_found": {
+      "status": 404,
+      "example": {
+        "error": "not_found",
+        "message": "Workflow not found",
+        "workflow_id": "wf_invalid_id",
+        "timestamp": "2025-09-12T21:30:00.000Z"
+      }
+    },
+    "rate_limit": {
+      "status": 429,
+      "example": {
+        "error": "rate_limit_exceeded",
+        "message": "API rate limit exceeded",
+        "retry_after": 60,
+        "timestamp": "2025-09-12T21:30:00.000Z"
+      }
+    },
+    "internal_error": {
+      "status": 500,
+      "example": {
+        "error": "internal_server_error",
+        "message": "An internal server error occurred",
+        "timestamp": "2025-09-12T21:30:00.000Z"
+      }
+    }
+  },
+  "clientIntegrationExamples": {
+    "javascript_fetch": {
+      "description": "Basic JavaScript fetch example",
+      "code": "// Create workflow\nconst response = await fetch('http://localhost:8090/v1/workflows', {\n  method: 'POST',\n  headers: {\n    'Content-Type': 'application/json',\n    'X-API-Key': 'mock-api-key'\n  },\n  body: JSON.stringify({\n    title: 'My Blog Post',\n    definition: 'Create a blog post about AI trends',\n    workflow_type: 'blog-post-social'\n  })\n});\n\nconst workflow = await response.json();\nconsole.log('Workflow ID:', workflow.workflow_id);"
+    },
+    "websocket_connection": {
+      "description": "WebSocket connection example",
+      "code": "// Connect to WebSocket for real-time updates\nconst ws = new WebSocket('ws://localhost:8091');\n\nws.onmessage = (event) => {\n  const message = JSON.parse(event.data);\n  console.log('WebSocket message:', message);\n  \n  switch (message.type) {\n    case 'workflow_started':\n      console.log('Workflow started:', message.workflow_id);\n      break;\n    case 'step_updated':\n      console.log('Step update:', message.data.step_name);\n      break;\n    case 'workflow_completed':\n      console.log('Workflow completed!');\n      console.log('Results:', message.data.results);\n      break;\n  }\n};"
+    },
+    "typescript_client": {
+      "description": "TypeScript client integration example",
+      "code": "interface WorkflowRequest {\n  title: string;\n  definition: string;\n  workflow_type: string;\n  config?: Record<string, unknown>;\n}\n\ninterface WorkflowResponse {\n  workflow_id: string;\n  status: string;\n  message: string;\n  created_at: string;\n}\n\nclass AICoreCient {\n  constructor(private apiKey: string, private baseUrl: string = 'http://localhost:8090/v1') {}\n  \n  async createWorkflow(request: WorkflowRequest): Promise<WorkflowResponse> {\n    const response = await fetch(`${this.baseUrl}/workflows`, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        'X-API-Key': this.apiKey\n      },\n      body: JSON.stringify(request)\n    });\n    \n    if (!response.ok) {\n      throw new Error(`API Error: ${response.status}`);\n    }\n    \n    return response.json();\n  }\n}"
+    }
+  },
+  "scenarioExamples": {
+    "blog_post_creation": {
+      "title": "Blog Post Creation & SEO Optimization",
+      "request": {
+        "title": "SEO-Optimized Blog Post",
+        "definition": "Create a comprehensive 800-word blog post about sustainable AI practices in business, include SEO keywords, meta description, and featured image",
+        "workflow_type": "blog-post-social",
+        "config": {
+          "word_count_target": 800,
+          "seo_focus": "sustainable AI practices",
+          "target_audience": "business leaders",
+          "tone": "professional"
+        }
+      }
+    },
+    "social_media_campaign": {
+      "title": "Multi-Platform Social Media Campaign",
+      "request": {
+        "title": "Product Launch Campaign",
+        "definition": "Create a social media campaign for our new AI automation tool launch, including posts for LinkedIn, Twitter, and Facebook with appropriate hashtags and visuals",
+        "workflow_type": "social-media-campaign",
+        "config": {
+          "platforms": ["linkedin", "twitter", "facebook"],
+          "campaign_duration": "2_weeks",
+          "target_audience": "tech professionals"
+        }
+      }
+    },
+    "email_newsletter": {
+      "title": "Weekly Newsletter Generation",
+      "request": {
+        "title": "AI Weekly Newsletter",
+        "definition": "Generate our weekly AI industry newsletter with the latest developments, curated articles, and personalized recommendations for subscribers",
+        "workflow_type": "email-newsletter",
+        "config": {
+          "newsletter_type": "weekly",
+          "sections": ["industry_news", "featured_articles", "recommendations"],
+          "personalization": true
+        }
+      }
+    },
+    "technical_documentation": {
+      "title": "API Documentation with Examples",
+      "request": {
+        "title": "API Documentation Update",
+        "definition": "Create comprehensive technical documentation for our new API endpoints, including code examples in multiple languages and interactive testing",
+        "workflow_type": "technical-docs",
+        "config": {
+          "languages": ["javascript", "python", "curl"],
+          "include_examples": true,
+          "interactive_testing": true
+        }
+      }
+    }
+  }
+}

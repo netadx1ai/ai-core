@@ -1,0 +1,180 @@
+# Docker Compose configuration for AI-PLATFORM development databases
+# Simplified version with just the essential database services
+
+version: '3.8'
+
+services:
+  # PostgreSQL - ACID transactions, user management, billing (20% of data)
+  postgres:
+    image: postgres:15-alpine
+    container_name: AI-PLATFORM-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_core_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_core_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # MongoDB - Flexible document storage, content, campaigns (25% of data)
+  mongodb:
+    image: mongo:7.0
+    container_name: AI-PLATFORM-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: ai_core_dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/ai_core_dev --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # ClickHouse - Analytics, time-series data, metrics (40% of data)
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8-alpine
+    container_name: AI-PLATFORM-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: analytics_dev
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native interface
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # Redis - Caching, sessions, rate limiting (15% of data)
+  redis:
+    image: redis:7-alpine
+    container_name: AI-PLATFORM-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - AI-PLATFORM-network
+
+  # pgAdmin - PostgreSQL administration
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: AI-PLATFORM-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@aicore.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - AI-PLATFORM-network
+
+  # Mongo Express - MongoDB web interface
+  mongo-express:
+    image: mongo-express:1.0.2-18-alpine3.18
+    container_name: AI-PLATFORM-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - AI-PLATFORM-network
+
+  # Redis Insight - Redis web interface
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: AI-PLATFORM-redis-insight
+    restart: unless-stopped
+    ports:
+      - "8082:5540"
+    volumes:
+      - redis_insight_data:/data
+    depends_on:
+      - redis
+    networks:
+      - AI-PLATFORM-network
+
+# Persistent volumes
+volumes:
+  postgres_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  redis_insight_data:
+    driver: local
+
+# Network configuration
+networks:
+  AI-PLATFORM-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

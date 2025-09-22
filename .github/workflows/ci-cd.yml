@@ -1,0 +1,732 @@
+# AI-PLATFORM Platform CI/CD Pipeline
+# Modern 2025 GitHub Actions workflow with comprehensive testing, security, and deployment
+# Supports Rust backend, React frontend, multi-database testing, and Kubernetes deployment
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'release/*', 'hotfix/*' ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip tests (use with caution)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  NODE_VERSION: '20'
+  RUST_VERSION: '1.75'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: AI-PLATFORM/platform
+
+# Concurrency control - cancel in-progress runs on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ================================
+  # CHANGE DETECTION
+  # ================================
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure }}
+      docs: ${{ steps.changes.outputs.docs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'src/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - '.github/workflows/**'
+            frontend:
+              - 'src/ui/**'
+              - 'package*.json'
+              - 'yarn.lock'
+              - 'src/ui/package*.json'
+            infrastructure:
+              - 'infrastructure/**'
+              - 'scripts/**'
+              - 'docker-compose*.yml'
+              - '.github/workflows/**'
+            docs:
+              - 'docs/**'
+              - '*.md'
+
+  # ================================
+  # RUST BACKEND CI
+  # ================================
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ai_core_user
+          POSTGRES_PASSWORD: ai_core_password
+          POSTGRES_DB: ai_core_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: ai_core_admin
+          MONGO_INITDB_ROOT_PASSWORD: ai_core_mongo_password
+          MONGO_INITDB_DATABASE: automation_platform_test
+        ports:
+          - 27017:27017
+
+      clickhouse:
+        image: clickhouse/clickhouse-server:24.1-alpine
+        env:
+          CLICKHOUSE_DB: analytics_test
+          CLICKHOUSE_USER: ai_core_clickhouse
+          CLICKHOUSE_PASSWORD: ai_core_clickhouse_password
+        ports:
+          - 8123:8123
+          - 9000:9000
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src/api-gateway -> target
+            src/shared -> target
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev libssl-dev pkg-config
+
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (linting)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run security audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend
+        run: cargo build --verbose --all-features
+
+      - name: Run unit tests
+        run: cargo test --verbose --all-features
+        env:
+          DATABASE_URL: postgresql://ai_core_user:ai_core_password@localhost:5432/ai_core_test
+          REDIS_URL: redis://localhost:6379
+          MONGODB_URL: mongodb://ai_core_admin:ai_core_mongo_password@localhost:27017/automation_platform_test
+          CLICKHOUSE_URL: http://ai_core_clickhouse:ai_core_clickhouse_password@localhost:8123/analytics_test
+
+      - name: Generate test coverage
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./cobertura.xml
+          flags: backend
+          name: backend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run integration tests
+        run: cargo test --test integration --verbose --all-features
+        env:
+          DATABASE_URL: postgresql://ai_core_user:ai_core_password@localhost:5432/ai_core_test
+          REDIS_URL: redis://localhost:6379
+          MONGODB_URL: mongodb://ai_core_admin:ai_core_mongo_password@localhost:27017/automation_platform_test
+          CLICKHOUSE_URL: http://ai_core_clickhouse:ai_core_clickhouse_password@localhost:8123/analytics_test
+
+      - name: Benchmark tests (on main branch only)
+        if: github.ref == 'refs/heads/main'
+        run: cargo bench --verbose
+
+      - name: Build release binary
+        run: cargo build --release --bin api-gateway
+
+      - name: Upload backend artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-binary
+          path: |
+            target/release/api-gateway
+            Cargo.lock
+
+  # ================================
+  # FRONTEND CI
+  # ================================
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+
+    defaults:
+      run:
+        working-directory: src/ui
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check code formatting
+        run: npm run format:check
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type checking
+        run: npm run type-check
+
+      - name: Run unit tests
+        run: npm test -- --coverage --watchAll=false
+        env:
+          CI: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./src/ui/coverage/cobertura-coverage.xml
+          flags: frontend
+          name: frontend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          NODE_ENV: production
+          GENERATE_SOURCEMAP: false
+
+      - name: Run E2E tests
+        run: |
+          npm run build
+          npm run test:e2e:headless
+        env:
+          CI: true
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: |
+            src/ui/dist/
+            src/ui/package.json
+
+      - name: Lighthouse performance audit
+        if: github.event_name == 'pull_request'
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          configPath: './src/ui/lighthouserc.js'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  # ================================
+  # INFRASTRUCTURE TESTS
+  # ================================
+  infrastructure-ci:
+    name: Infrastructure CI
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.infrastructure == 'true' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Compose files
+        run: |
+          docker compose -f infrastructure/docker/docker-compose.yml config
+          docker compose -f infrastructure/docker/docker-compose.databases.yml config
+
+      - name: Test Docker builds
+        run: |
+          docker build -f infrastructure/docker/Dockerfile.api -t AI-PLATFORM/api-gateway:test .
+          docker build -f infrastructure/docker/Dockerfile.ui -t AI-PLATFORM/frontend-ui:test src/ui/ || echo "Frontend build optional"
+
+      - name: Validate Kubernetes manifests
+        run: |
+          # Install kubeval
+          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          sudo mv kubeval /usr/local/bin
+
+          # Validate manifests
+          find infrastructure/kubernetes/manifests -name "*.yaml" -exec kubeval {} \;
+
+      - name: Security scan for Dockerfiles
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: infrastructure/docker/Dockerfile.api
+          format: sarif
+          output-file: hadolint-results.sarif
+
+      - name: Upload Hadolint results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: hadolint-results.sarif
+
+      - name: Infrastructure security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'infrastructure/'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ================================
+  # SECURITY SCANNING
+  # ================================
+  security-scan:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: typescript, javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  # ================================
+  # BUILD AND PUSH DOCKER IMAGES
+  # ================================
+  build-images:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: [backend-ci, frontend-ci, infrastructure-ci]
+    if: github.event_name == 'push' || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-binary
+          path: ./artifacts/backend/
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-build
+          path: ./artifacts/frontend/
+
+      - name: Build and push API Gateway image
+        id: build-api
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infrastructure/docker/Dockerfile.api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-api
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+      - name: Build and push Frontend image
+        id: build-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: src/ui
+          file: infrastructure/docker/Dockerfile.ui
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-frontend
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.meta.outputs.tags }}-api
+          format: spdx-json
+          output-file: sbom-api.spdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom
+          path: sbom-*.spdx.json
+
+      - name: Image vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}-api
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+
+      - name: Upload image scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+
+  # ================================
+  # STAGING DEPLOYMENT
+  # ================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-images]
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging-api.AI-PLATFORM.dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Setup EKS kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-west-2 --name AI-PLATFORM-staging
+
+      - name: Deploy to staging
+        run: |
+          # Update image tags in manifests
+          sed -i "s|AI-PLATFORM/api-gateway:latest|${{ needs.build-images.outputs.image-tag }}-api|g" infrastructure/kubernetes/manifests/api-gateway.yaml
+
+          # Apply configurations
+          kubectl apply -f infrastructure/kubernetes/manifests/namespace.yaml
+          kubectl apply -f infrastructure/kubernetes/manifests/api-gateway.yaml
+
+          # Wait for rollout
+          kubectl rollout status deployment/AI-PLATFORM-api-gateway -n AI-PLATFORM --timeout=600s
+
+      - name: Run smoke tests
+        run: |
+          # Wait for service to be ready
+          kubectl wait --for=condition=ready pod -l app=AI-PLATFORM-api-gateway -n AI-PLATFORM --timeout=300s
+
+          # Get service endpoint
+          ENDPOINT=$(kubectl get ingress AI-PLATFORM-api-gateway-ingress -n AI-PLATFORM -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          # Run health check
+          curl -f "https://$ENDPOINT/health" || exit 1
+
+          # Run API tests
+          npm run test:api:staging || exit 1
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          text: 'Staging deployment ${{ job.status }} for commit ${{ github.sha }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ================================
+  # PRODUCTION DEPLOYMENT
+  # ================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-images]
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_environment == 'production')
+    environment:
+      name: production
+      url: https://api.AI-PLATFORM.dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+          aws-region: us-west-2
+
+      - name: Setup EKS kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-west-2 --name AI-PLATFORM-production
+
+      - name: Blue-Green Deployment
+        run: |
+          # Create new version with green label
+          sed -i "s|AI-PLATFORM/api-gateway:latest|${{ needs.build-images.outputs.image-tag }}-api|g" infrastructure/kubernetes/manifests/api-gateway.yaml
+          sed -i 's|version: v1|version: green|g' infrastructure/kubernetes/manifests/api-gateway.yaml
+
+          # Deploy green version
+          kubectl apply -f infrastructure/kubernetes/manifests/api-gateway.yaml
+
+          # Wait for green to be ready
+          kubectl rollout status deployment/AI-PLATFORM-api-gateway -n AI-PLATFORM --timeout=600s
+
+          # Run production smoke tests against green
+          ENDPOINT=$(kubectl get service AI-PLATFORM-api-gateway -n AI-PLATFORM -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          curl -f "https://$ENDPOINT/health" || exit 1
+
+          # Switch traffic to green (update service selector)
+          kubectl patch service AI-PLATFORM-api-gateway -n AI-PLATFORM -p '{"spec":{"selector":{"version":"green"}}}'
+
+          # Clean up old blue version after successful deployment
+          kubectl delete deployment AI-PLATFORM-api-gateway-blue -n AI-PLATFORM --ignore-not-found=true
+
+      - name: Post-deployment verification
+        run: |
+          # Run comprehensive production tests
+          npm run test:api:production
+          npm run test:e2e:production
+
+          # Verify metrics endpoint
+          curl -f "https://api.AI-PLATFORM.dev/metrics" || exit 1
+
+      - name: Notify production deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          text: |
+            🚀 Production deployment ${{ job.status }} for release ${{ github.event.release.tag_name }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ================================
+  # PERFORMANCE MONITORING
+  # ================================
+  performance-monitor:
+    name: Performance Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run load tests
+        run: |
+          k6 run tests/performance/load-test.js \
+            --env ENDPOINT=https://staging-api.AI-PLATFORM.dev \
+            --out json=performance-results.json
+
+      - name: Analyze performance results
+        run: |
+          node scripts/analyze-performance.js performance-results.json
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: performance-results.json
+
+  # ================================
+  # CLEANUP
+  # ================================
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production, performance-monitor]
+    if: always()
+
+    steps:
+      - name: Delete old container images
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: 'AI-PLATFORM/platform'
+          package-type: 'container'
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: true
+
+      - name: Cleanup workflow artifacts
+        uses: geekyeggo/delete-artifact@v2
+        if: github.event_name != 'release'
+        with:
+          name: |
+            backend-binary
+            frontend-build
+            performance-results

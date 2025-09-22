@@ -1,0 +1,565 @@
+# AI-PLATFORM API Gateway Kubernetes Deployment
+# Modern 2025 Kubernetes configuration with security, observability, and scalability
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: AI-PLATFORM-api-gateway-config
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: configmap
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: kubernetes
+data:
+  config.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 8080
+      timeout: 30s
+      max_connections: 10000
+
+    database:
+      postgres_url: "postgresql://ai_core_user:${POSTGRES_PASSWORD}@postgres:5432/ai_core"
+      redis_url: "redis://redis:6379"
+      mongodb_url: "mongodb://ai_core_admin:${MONGO_PASSWORD}@mongodb:27017/automation_platform"
+      clickhouse_url: "http://ai_core_clickhouse:${CLICKHOUSE_PASSWORD}@clickhouse:8123/analytics"
+
+    auth:
+      jwt_secret: "${JWT_SECRET}"
+      token_expiry: "24h"
+      refresh_expiry: "7d"
+
+    rate_limiting:
+      requests_per_minute: 1000
+      burst_size: 100
+
+    logging:
+      level: "info"
+      format: "json"
+
+    metrics:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+
+    tracing:
+      enabled: true
+      jaeger_endpoint: "http://jaeger:14268/api/traces"
+      service_name: "AI-PLATFORM-api-gateway"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: AI-PLATFORM-api-gateway-secrets
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: secret
+    app.kubernetes.io/version: "1.0.0"
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "ai_core_password"
+  MONGO_PASSWORD: "ai_core_mongo_password"
+  CLICKHOUSE_PASSWORD: "ai_core_clickhouse_password"
+  JWT_SECRET: "your-super-secret-jwt-key-change-in-production"
+  DATABASE_ENCRYPTION_KEY: "your-encryption-key-32-chars-long"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: AI-PLATFORM-api-gateway
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: api-gateway
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: "AI-PLATFORM API Gateway - High-performance Rust/Axum backend"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: AI-PLATFORM-api-gateway
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: AI-PLATFORM-api-gateway
+        version: v1
+        tier: backend
+        app.kubernetes.io/name: AI-PLATFORM-api-gateway
+        app.kubernetes.io/component: api-gateway
+        app.kubernetes.io/version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        sidecar.istio.io/inject: "true"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    spec:
+      serviceAccountName: AI-PLATFORM-app
+      priorityClassName: AI-PLATFORM-critical
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+
+      # Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Init Container for database migrations
+      initContainers:
+      - name: migrate-db
+        image: AI-PLATFORM/api-gateway:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/app/api-gateway"
+          - "migrate"
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://ai_core_user:$(POSTGRES_PASSWORD)@postgres:5432/ai_core"
+        envFrom:
+        - secretRef:
+            name: AI-PLATFORM-api-gateway-secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: app-cache
+          mountPath: /app/cache
+
+      containers:
+      - name: api-gateway
+        image: AI-PLATFORM/api-gateway:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        - name: health
+          containerPort: 8081
+          protocol: TCP
+
+        env:
+        - name: RUST_ENV
+          value: "production"
+        - name: RUST_LOG
+          value: "info"
+        - name: RUST_BACKTRACE
+          value: "1"
+        - name: PORT
+          value: "8080"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: HEALTH_PORT
+          value: "8081"
+        - name: WORKER_THREADS
+          value: "4"
+        - name: MAX_BLOCKING_THREADS
+          value: "16"
+        - name: OTEL_SERVICE_NAME
+          value: "AI-PLATFORM-api-gateway"
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://jaeger:14268/api/traces"
+
+        envFrom:
+        - configMapRef:
+            name: AI-PLATFORM-api-gateway-config
+        - secretRef:
+            name: AI-PLATFORM-api-gateway-secrets
+
+        # Resource Limits
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+            ephemeral-storage: 100Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+            ephemeral-storage: 1Gi
+
+        # Security Context
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: health
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: health
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 12
+          successThreshold: 1
+
+        # Volume Mounts
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: app-cache
+          mountPath: /app/cache
+        - name: app-logs
+          mountPath: /app/logs
+
+      # Sidecar: Log shipper
+      - name: log-shipper
+        image: grafana/promtail:2.9.2
+        imagePullPolicy: IfNotPresent
+        args:
+        - -config.file=/etc/promtail/config.yml
+        - -server.http-listen-port=3101
+        env:
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+        volumeMounts:
+        - name: app-logs
+          mountPath: /app/logs
+          readOnly: true
+        - name: promtail-config
+          mountPath: /etc/promtail
+          readOnly: true
+
+      # Volumes
+      volumes:
+      - name: config-volume
+        configMap:
+          name: AI-PLATFORM-api-gateway-config
+          defaultMode: 0444
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: app-cache
+        emptyDir:
+          sizeLimit: 500Mi
+      - name: app-logs
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: promtail-config
+        configMap:
+          name: promtail-config
+          defaultMode: 0444
+
+      # Node Selection
+      nodeSelector:
+        kubernetes.io/arch: amd64
+
+      # Tolerations
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+
+      # Pod Anti-Affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - AI-PLATFORM-api-gateway
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - compute-optimized
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: AI-PLATFORM-api-gateway
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: service
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: AI-PLATFORM-api-gateway
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: AI-PLATFORM-api-gateway-headless
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: service-headless
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: AI-PLATFORM-api-gateway
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: AI-PLATFORM-api-gateway-ingress
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  tls:
+  - hosts:
+    - api.AI-PLATFORM.dev
+    secretName: AI-PLATFORM-api-tls
+  rules:
+  - host: api.AI-PLATFORM.dev
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: AI-PLATFORM-api-gateway
+            port:
+              number: 80
+      - path: /health
+        pathType: Prefix
+        backend:
+          service:
+            name: AI-PLATFORM-api-gateway
+            port:
+              number: 80
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: AI-PLATFORM-api-gateway
+            port:
+              number: 9090
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: AI-PLATFORM-api-gateway-netpol
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: AI-PLATFORM-api-gateway
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: AI-PLATFORM-frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow database connections
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: database
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 27017 # MongoDB
+    - protocol: TCP
+      port: 8123  # ClickHouse
+  # Allow monitoring
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 14268 # Jaeger
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: AI-PLATFORM-api-gateway-pdb
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: pod-disruption-budget
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: AI-PLATFORM-api-gateway
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: AI-PLATFORM-api-gateway
+  namespace: AI-PLATFORM
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-api-gateway
+    app.kubernetes.io/component: service-monitor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: AI-PLATFORM-api-gateway
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    honorLabels: true
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: instance
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace

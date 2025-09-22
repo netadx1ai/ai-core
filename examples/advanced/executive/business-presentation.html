@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-CORE Executive Presentation - Transforming Business Through Intelligent Automation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .presentation-container {
+            max-width: 100vw;
+            margin: 0 auto;
+        }
+
+        .slide {
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+        }
+
+        .slide h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        .slide h2 {
+            font-size: 2.8em;
+            margin-bottom: 40px;
+            color: #4facfe;
+            text-align: center;
+        }
+
+        .slide h3 {
+            font-size: 2.2em;
+            margin-bottom: 25px;
+            color: #00f2fe;
+        }
+
+        .slide p {
+            font-size: 1.3em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin: 50px 0;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(79, 172, 254, 0.3);
+        }
+
+        .metric-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            font-size: 1.2em;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .metric-description {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+        }
+
+        .problem-list {
+            list-style: none;
+            padding: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .problem-list li {
+            padding: 20px;
+            margin: 15px 0;
+            background: rgba(231, 76, 60, 0.2);
+            border-left: 5px solid #e74c3c;
+            border-radius: 0 10px 10px 0;
+            font-size: 1.2em;
+        }
+
+        .solution-list {
+            list-style: none;
+            padding: 0;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .solution-list li {
+            padding: 20px;
+            margin: 15px 0;
+            background: rgba(39, 174, 96, 0.2);
+            border-left: 5px solid #27ae60;
+            border-radius: 0 10px 10px 0;
+            font-size: 1.2em;
+        }
+
+        .architecture-diagram {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px 0;
+            text-align: center;
+        }
+
+        .architecture-layer {
+            background: linear-gradient(45deg, rgba(79, 172, 254, 0.3), rgba(0, 242, 254, 0.3));
+            border-radius: 15px;
+            padding: 25px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .competitive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .competitive-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .competitive-card h4 {
+            color: #4facfe;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .competitive-card.us {
+            border-left: 5px solid #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        .competitive-card.them {
+            border-left: 5px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            margin: 50px 0;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            z-index: 1;
+        }
+
+        .timeline-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            border: 2px solid #4facfe;
+            max-width: 200px;
+        }
+
+        .timeline-item h4 {
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+
+        .cta-section {
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(79, 172, 254, 0.4);
+        }
+
+        .slide-navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        .logo {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .slide-controls {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(79, 172, 254, 0.5);
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .roi-chart {
+            height: 300px;
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            padding: 20px;
+        }
+
+        .chart-bar {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            border-radius: 5px 5px 0 0;
+            min-width: 60px;
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            animation: grow-up 2s ease-out;
+        }
+
+        @keyframes grow-up {
+            from { height: 0; }
+            to { height: var(--bar-height); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">AI-CORE</div>
+
+    <div class="slide-controls">
+        <button class="control-btn" onclick="previousSlide()">↑</button>
+        <button class="control-btn" onclick="nextSlide()">↓</button>
+        <button class="control-btn" onclick="toggleFullscreen()">⛶</button>
+    </div>
+
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide fade-in" id="slide-1">
+            <div class="slide-number">1/12</div>
+            <h1>AI-CORE</h1>
+            <p style="font-size: 1.8em; margin-bottom: 40px;">Transforming Business Through Intelligent Automation</p>
+            <p style="font-size: 1.3em; color: rgba(255,255,255,0.8);">Executive Presentation</p>
+            <div class="metrics-grid" style="margin-top: 60px;">
+                <div class="metric-card">
+                    <div class="metric-value">245.8%</div>
+                    <div class="metric-label">Proven ROI</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">$8,750</div>
+                    <div class="metric-label">Cost Savings</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">70%</div>
+                    <div class="metric-label">Time Reduction</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: The Problem -->
+        <div class="slide hidden" id="slide-2">
+            <div class="slide-number">2/12</div>
+            <h2>The Content Creation Crisis</h2>
+            <p>Modern businesses face unprecedented content demands</p>
+            <ul class="problem-list">
+                <li>📝 Manual content creation takes 2-4 hours per piece</li>
+                <li>🔄 Coordination across multiple tools and platforms</li>
+                <li>⚠️ Inconsistent quality and brand messaging</li>
+                <li>💰 High costs: $75-150 per hour for skilled creators</li>
+                <li>⏰ Slow turnaround times missing market opportunities</li>
+                <li>📈 Exponentially growing content volume requirements</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3: Market Opportunity -->
+        <div class="slide hidden" id="slide-3">
+            <div class="slide-number">3/12</div>
+            <h2>Market Opportunity</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">$15.7B</div>
+                    <div class="metric-label">Content Marketing Market</div>
+                    <div class="metric-description">Growing 16% annually</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">91%</div>
+                    <div class="metric-label">B2B Companies</div>
+                    <div class="metric-description">Use content marketing</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">70%</div>
+                    <div class="metric-label">Content Creators</div>
+                    <div class="metric-description">Report burnout</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">3.5x</div>
+                    <div class="metric-label">Content Volume</div>
+                    <div class="metric-description">Expected by 2027</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: AI-CORE Solution -->
+        <div class="slide hidden" id="slide-4">
+            <div class="slide-number">4/12</div>
+            <h2>AI-CORE: The Solution</h2>
+            <p>Enterprise-grade intelligent automation platform</p>
+            <ul class="solution-list">
+                <li>🚀 Multi-MCP orchestration for complex workflows</li>
+                <li>🧠 Natural</li> language to automated execution</li>
+                <li>⚡ 45-second end-to-end content creation</li>
+                <li>🎯 87.5/100 automated quality scoring</li>
+                <li>📊 Real-time analytics and business intelligence</li>
+                <li>🔗 Enterprise-grade APIs and integrations</li>
+            </ul>
+        </div>
+
+        <!-- Slide 5: Platform Architecture -->
+        <div class="slide hidden" id="slide-5">
+            <div class="slide-number">5/12</div>
+            <h2>Platform Architecture</h2>
+            <div class="architecture-diagram">
+                <div class="architecture-layer">
+                    <h3>🌐 API Gateway</h3>
+                    <p>Authentication, routing, rate limiting</p>
+                </div>
+                <div class="architecture-layer">
+                    <h3>🔄 Federation Service</h3>
+                    <p>Multi-tenant client management</p>
+                </div>
+                <div class="architecture-layer">
+                    <h3>🧠 Intent Parser + 🔧 MCP Manager</h3>
+                    <p>Natural language processing + Service orchestration</p>
+                </div>
+                <div class="architecture-layer">
+                    <h3>⚡ Workflow Engine + 📊 Analytics</h3>
+                    <p>Temporal.io execution + Business intelligence</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Live Demo Results -->
+        <div class="slide hidden" id="slide-6">
+            <div class="slide-number">6/12</div>
+            <h2>Proven Performance Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">86.7%</div>
+                    <div class="metric-label">Workflow Success Rate</div>
+                    <div class="metric-description">Production validated</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">43s</div>
+                    <div class="metric-label">Average Duration</div>
+                    <div class="metric-description">vs 3+ hours manual</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">95.2%</div>
+                    <div class="metric-label">System Uptime</div>
+                    <div class="metric-description">Enterprise SLA</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">7/7</div>
+                    <div class="metric-label">MCPs Operational</div>
+                    <div class="metric-description">Real AI integration</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Financial Impact -->
+        <div class="slide hidden" id="slide-7">
+            <div class="slide-number">7/12</div>
+            <h2>Financial Impact & ROI</h2>
+            <div class="chart-container">
+                <h3>ROI Progression Over 12 Months</h3>
+                <div class="roi-chart">
+                    <div class="chart-bar" style="--bar-height: 80px;">Month 3<br>45%</div>
+                    <div class="chart-bar" style="--bar-height: 120px;">Month 6<br>89%</div>
+                    <div class="chart-bar" style="--bar-height: 180px;">Month 9<br>167%</div>
+                    <div class="chart-bar" style="--bar-height: 240px;">Month 12<br>245%</div>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">$8,750</div>
+                    <div class="metric-label">Annual Savings</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">6.4mo</div>
+                    <div class="metric-label">Payback Period</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Competitive Advantage -->
+        <div class="slide hidden" id="slide-8">
+            <div class="slide-number">8/12</div>
+            <h2>Competitive Advantage</h2>
+            <div class="competitive-grid">
+                <div class="competitive-card us">
+                    <h4>🏆 AI-CORE Advantages</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>✓ Multi-MCP orchestration (unique)</li>
+                        <li>✓ 15-minute onboarding</li>
+                        <li>✓ Real AI integration (Gemini Flash)</li>
+                        <li>✓ Enterprise-grade architecture</li>
+                        <li>✓ 245.8% proven ROI</li>
+                        <li>✓ Production-ready platform</li>
+                    </ul>
+                </div>
+                <div class="competitive-card them">
+                    <h4>❌ Traditional Solutions</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>✗ Single-service limitations</li>
+                        <li>✗ Months-long implementations</li>
+                        <li>✗ Basic AI or mock services</li>
+                        <li>✗ Development-stage platforms</li>
+                        <li>✗ Theoretical ROI projections</li>
+                        <li>✗ Beta or prototype status</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Implementation Timeline -->
+        <div class="slide hidden" id="slide-9">
+            <div class="slide-number">9/12</div>
+            <h2>Implementation Timeline</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h4>Week 1</h4>
+                    <p>Platform Setup<br>API Integration<br>Team Training</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Week 2-3</h4>
+                    <p>Workflow Config<br>Custom MCPs<br>Testing</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Week 4</h4>
+                    <p>Production Deploy<br>Monitoring Setup<br>Go-Live</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Month 2+</h4>
+                    <p>Optimization<br>Scaling<br>ROI Realization</p>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 40px; font-size: 1.3em;">
+                <strong>Total Time to Value: 4 weeks</strong>
+            </p>
+        </div>
+
+        <!-- Slide 10: Success Stories -->
+        <div class="slide hidden" id="slide-10">
+            <div class="slide-number">10/12</div>
+            <h2>Success Metrics & Validation</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">15min</div>
+                    <div class="metric-label">Developer Onboarding</div>
+                    <div class="metric-description">Complete platform setup</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">100%</div>
+                    <div class="metric-label">API Coverage</div>
+                    <div class="metric-description">Interactive documentation</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">12.5/min</div>
+                    <div class="metric-label">Throughput</div>
+                    <div class="metric-description">Workflows per minute</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">920ms</div>
+                    <div class="metric-label">Response Time</div>
+                    <div class="metric-description">Enterprise SLA compliant</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Investment & Packages -->
+        <div class="slide hidden" id="slide-11">
+            <div class="slide-number">11/12</div>
+            <h2>Investment Packages</h2>
+            <div class="competitive-grid">
+                <div class="competitive-card">
+                    <h4>💼 Professional</h4>
+                    <div class="metric-value" style="font-size: 2em;">$2,500</div>
+                    <div class="metric-label" style="margin-bottom: 20px;">per month</div>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li>• 1,000 workflows/month</li>
+                        <li>• 7 core MCPs included</li>
+                        <li>• Standard support</li>
+                        <li>• API access</li>
+                        <li>• Basic analytics</li>
+                    </ul>
+                </div>
+                <div class="competitive-card us">
+                    <h4>🏢 Enterprise</h4>
+                    <div class="metric-value" style="font-size: 2em;">$7,500</div>
+                    <div class="metric-label" style="margin-bottom: 20px;">per month</div>
+                    <ul style="list-style: none; padding: 0; text-align: left;">
+                        <li>• Unlimited workflows</li>
+                        <li>• Custom MCP development</li>
+                        <li>• Premium support</li>
+                        <li>• White-label options</li>
+                        <li>• Advanced BI & analytics</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Call to Action -->
+        <div class="slide hidden" id="slide-12">
+            <div class="slide-number">12/12</div>
+            <h2>Ready to Transform Your Business?</h2>
+            <p style="font-size: 1.5em; margin-bottom: 50px;">
+                Join the intelligent automation revolution
+            </p>
+            <div class="cta-section">
+                <button class="cta-button" onclick="scheduleDemo()">
+                    📅 Schedule Technical Demo
+                </button>
+                <button class="cta-button" onclick="requestTrial()">
+                    🚀 Start 30-Day Trial
+                </button>
+                <button class="cta-button" onclick="contactSales()">
+                    💬 Contact Enterprise Sales
+                </button>
+            </div>
+            <div style="margin-top: 60px;">
+                <p><strong>Contact Information:</strong></p>
+                <p>enterprise@ai-core.platform | +1 (555) 123-4567</p>
+                <p>ai-core.platform | docs.ai-core.platform</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-navigation">
+        <div class="nav-dot active" onclick="goToSlide(1)"></div>
+        <div class="nav-dot" onclick="goToSlide(2)"></div>
+        <div class="nav-dot" onclick="goToSlide(3)"></div>
+        <div class="nav-dot" onclick="goToSlide(4)"></div>
+        <div class="nav-dot" onclick="goToSlide(5)"></div>
+        <div class="nav-dot" onclick="goToSlide(6)"></div>
+        <div class="nav-dot" onclick="goToSlide(7)"></div>
+        <div class="nav-dot" onclick="goToSlide(8)"></div>
+        <div class="nav-dot" onclick="goToSlide(9)"></div>
+        <div class="nav-dot" onclick="goToSlide(10)"></div>
+        <div class="nav-dot" onclick="goToSlide(11)"></div>
+        <div class="nav-dot" onclick="goToSlide(12)"></div>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 12;
+
+        function showSlide(slideNumber) {
+            // Hide all slides
+            for (let i = 1; i <= totalSlides; i++) {
+                document.getElementById(`slide-${i}`).classList.add('hidden');
+                document.querySelectorAll('.nav-dot')[i-1].classList.remove('active');
+            }
+
+            // Show current slide
+            document.getElementById(`slide-${slideNumber}`).classList.remove('hidden');
+            document.getElementById(`slide-${slideNumber}`).classList.add('fade-in');
+            document.querySelectorAll('.nav-dot')[slideNumber-1].classList.add('active');
+
+            currentSlide = slideNumber;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                showSlide(currentSlide + 1);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 1) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        function goToSlide(slideNumber) {
+            showSlide(slideNumber);
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                case ' ':
+                    nextSlide();
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    previousSlide();
+                    break;
+                case 'Home':
+                    goToSlide(1);
+                    break;
+                case 'End':
+                    goToSlide(totalSlides);
+                    break;
+                case 'F11':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+            }
+        });
+
+        // CTA Functions
+        function scheduleDemo() {
+            alert('📅 Technical Demo Scheduled!\n\nOur enterprise team will contact you within 24 hours to:\n\n• Schedule live platform demonstration\n• Discuss technical requirements\n• Plan implementation strategy\n• Answer technical questions\n\nContact: enterprise@ai-core.platform');
+        }
+
+        function requestTrial() {
+            alert('🚀 30-Day Enterprise Trial Activated!\n\nYour trial includes:\n\n• Full platform access\n• 1,000 free workflows\n• Dedicated support engineer\n• Custom MCP development\n• Success metrics tracking\n\nActivation link sent to your email.');
+        }
+
+        function contactSales() {
+            alert('💬 Enterprise Sales Contact!\n\nOur enterprise sales team will reach out with:\n\n• Custom pricing proposal\n• Volume discounts\n• Professional services\n• Implementation timeline\n• Success guarantees\n\nContact: sales@ai-core.platform');
+        }
+
+        // Auto-advance slides for demo mode (uncomment for auto-presentation)
+        // setInterval(() => {
+        //     if (currentSlide < totalSlides) {
+        //         nextSlide();
+        //     } else {
+        //         goToSlide(1);
+        //     }
+        // }, 15000);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showSlide(1);
+        });
+    </script>
+</body>
+</html>

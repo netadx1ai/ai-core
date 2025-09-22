@@ -1,0 +1,211 @@
+# Docker Compose MVP Configuration for AI-CORE Platform
+# Minimal Infrastructure Setup for MVP Demo - Fast startup (<3 minutes target)
+# Essential services only: PostgreSQL, Redis, Temporal, Health Dashboard
+
+services:
+    # ================================
+    # CORE DATA SERVICES
+    # ================================
+
+    # PostgreSQL - Primary database for core data
+    postgres:
+        image: postgres:16-alpine
+        container_name: AI-CORE-postgres-mvp
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: ai_core_mvp
+            POSTGRES_USER: ai_core_user
+            POSTGRES_PASSWORD: ai_core_password
+            POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+            PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_mvp_data:/var/lib/postgresql/data
+        command: >
+            postgres
+            -c max_connections=100
+            -c shared_buffers=128MB
+            -c effective_cache_size=512MB
+            -c work_mem=2MB
+            -c maintenance_work_mem=32MB
+            -c checkpoint_completion_target=0.9
+            -c wal_buffers=16MB
+            -c default_statistics_target=100
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ai_core_user -d ai_core_mvp"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 30s
+        networks:
+            - ai-core-mvp
+        labels:
+            - "ai-core.service=database"
+            - "ai-core.environment=mvp"
+
+    # Redis - Caching and real-time updates
+    redis:
+        image: redis:7.2-alpine
+        container_name: AI-CORE-redis-mvp
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_mvp_data:/data
+        command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 3s
+            retries: 3
+            start_period: 10s
+        networks:
+            - ai-core-mvp
+        labels:
+            - "ai-core.service=cache"
+            - "ai-core.environment=mvp"
+
+    # ================================
+    # WORKFLOW ORCHESTRATION
+    # ================================
+
+    # Temporal.io - Workflow orchestration engine
+    temporal:
+        image: temporalio/auto-setup:1.22.0
+        container_name: AI-CORE-temporal-mvp
+        restart: unless-stopped
+        environment:
+            - DB=postgresql
+            - DB_PORT=5432
+            - POSTGRES_USER=ai_core_user
+            - POSTGRES_PWD=ai_core_password
+            - POSTGRES_SEEDS=postgres
+            - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+        ports:
+            - "7233:7233"
+        volumes:
+            - temporal_mvp_data:/etc/temporal
+        depends_on:
+            postgres:
+                condition: service_healthy
+        healthcheck:
+            test: ["CMD", "tctl", "cluster", "health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 60s
+        networks:
+            - ai-core-mvp
+        labels:
+            - "ai-core.service=workflow"
+            - "ai-core.environment=mvp"
+
+    # Temporal Web UI
+    temporal-web:
+        image: temporalio/web:2.21.3
+        container_name: AI-CORE-temporal-web-mvp
+        restart: unless-stopped
+        environment:
+            - TEMPORAL_ADDRESS=temporal:7233
+            - TEMPORAL_CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+        ports:
+            - "8088:8088"
+        depends_on:
+            - temporal
+        networks:
+            - ai-core-mvp
+        labels:
+            - "ai-core.service=workflow-ui"
+            - "ai-core.environment=mvp"
+
+    # ================================
+    # DEVELOPMENT TOOLS
+    # ================================
+
+    # Health Dashboard - Simple service status monitor
+    health-dashboard:
+        image: nginx:alpine
+        container_name: AI-CORE-health-dashboard-mvp
+        restart: unless-stopped
+        ports:
+            - "8090:80"
+        volumes:
+            - ./config/health-dashboard:/usr/share/nginx/html:ro
+        networks:
+            - ai-core-mvp
+        labels:
+            - "ai-core.service=health-dashboard"
+            - "ai-core.environment=mvp"
+
+    # pgAdmin - PostgreSQL administration interface
+    pgadmin:
+        image: dpage/pgadmin4:8.0
+        container_name: AI-CORE-pgadmin-mvp
+        restart: unless-stopped
+        environment:
+            PGADMIN_DEFAULT_EMAIL: admin@aicore.local
+            PGADMIN_DEFAULT_PASSWORD: pgadmin_password
+            PGADMIN_CONFIG_SERVER_MODE: "False"
+            PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+        ports:
+            - "8081:80"
+        volumes:
+            - pgadmin_mvp_data:/var/lib/pgadmin
+        depends_on:
+            postgres:
+                condition: service_healthy
+        networks:
+            - ai-core-mvp
+        labels:
+            - "ai-core.service=pgadmin"
+            - "ai-core.environment=mvp"
+
+# ================================
+# PERSISTENT VOLUMES
+# ================================
+volumes:
+    postgres_mvp_data:
+        driver: local
+        labels:
+            - "ai-core.volume=postgres"
+            - "ai-core.environment=mvp"
+
+    redis_mvp_data:
+        driver: local
+        labels:
+            - "ai-core.volume=redis"
+            - "ai-core.environment=mvp"
+
+    temporal_mvp_data:
+        driver: local
+        labels:
+            - "ai-core.volume=temporal"
+            - "ai-core.environment=mvp"
+
+    pgadmin_mvp_data:
+        driver: local
+        labels:
+            - "ai-core.volume=pgadmin"
+            - "ai-core.environment=mvp"
+
+# ================================
+# NETWORK CONFIGURATION
+# ================================
+networks:
+    ai-core-mvp:
+        driver: bridge
+        name: ai-core-mvp-network
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.21.0.0/16
+                  gateway: 172.21.0.1
+        driver_opts:
+            com.docker.network.bridge.name: ai-core-mvp-bridge
+            com.docker.network.bridge.enable_icc: "true"
+            com.docker.network.bridge.enable_ip_masquerade: "true"
+            com.docker.network.driver.mtu: "1500"
+        labels:
+            - "ai-core.network=mvp"
+            - "ai-core.environment=mvp"

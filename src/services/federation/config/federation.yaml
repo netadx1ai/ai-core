@@ -1,0 +1,185 @@
+# Federation Service Configuration
+# This configuration file defines all settings for the AI-CORE Federation Service
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8084
+  requestTimeout: 30
+  keepAliveTimeout: 60
+  maxRequestSize: 10485760  # 10MB
+  enableCors: true
+  corsOrigins:
+    - "*"
+  shutdownTimeout: 30
+
+# Database configuration
+database:
+  url: "postgresql://federation:federation@localhost:5432/federation"
+  maxConnections: 20
+  minConnections: 5
+  connectTimeout: 10
+  queryTimeout: 30
+  idleTimeout: 300
+  logQueries: false
+  autoMigrate: true
+
+# Redis configuration
+redis:
+  url: "redis://localhost:6379"
+  poolSize: 10
+  connectTimeout: 5
+  commandTimeout: 5
+  reconnectAttempts: 3
+  keyPrefix: "federation:"
+  defaultTtl: 3600
+
+# Temporal workflow configuration
+temporal:
+  serverUrl: "http://localhost:7233"
+  namespace: "federation"
+  taskQueue: "federation-tasks"
+  worker:
+    maxConcurrentWorkflows: 100
+    maxConcurrentActivities: 100
+    workerIdentity: "federation-worker"
+    enableMetrics: true
+  workflowDefaults:
+    timeout: 3600
+    retryPolicy:
+      maxAttempts: 3
+      initialDelay: 1000
+      maxDelay: 60000
+      backoffCoefficient: 2.0
+    executionEnvironment: "development"
+
+# Proxy configuration for MCP server integration
+proxy:
+  enabled: true
+  connectionPoolSize: 100
+  requestTimeout: 30
+  connectionTimeout: 10
+  keepAlive:
+    enabled: true
+    timeout: 90
+    interval: 30
+  retry:
+    maxAttempts: 3
+    baseDelay: 1000
+    maxDelay: 30000
+    backoffMultiplier: 2.0
+    enableJitter: true
+  circuitBreaker:
+    enabled: true
+    failureThreshold: 5
+    successThreshold: 3
+    timeout: 60
+    halfOpenMaxCalls: 3
+
+# Authentication configuration
+auth:
+  jwt:
+    secret: "your-jwt-secret-key-change-in-production"
+    expiration: 86400  # 24 hours
+    issuer: "federation-service"
+    audience: "federation-clients"
+    algorithm: "HS256"
+  apiKey:
+    keyLength: 32
+    keyPrefix: "fed_"
+    enableRotation: false
+    rotationInterval: 90
+  session:
+    timeout: 3600
+    storage: "redis"
+    cookie:
+      name: "federation_session"
+      path: "/"
+      secure: false
+      httpOnly: true
+      sameSite: "lax"
+
+# Cost optimization configuration
+costOptimization:
+  enabled: true
+  strategy: "balanced"
+  costTracking:
+    detailedTracking: true
+    granularity: "request"
+    retentionDays: 90
+    export:
+      enabled: false
+      format: "json"
+      destination: "s3://cost-reports/"
+      schedule: "0 0 * * *"  # Daily at midnight
+  budgetAlerts:
+    enabled: true
+    thresholds: [0.5, 0.8, 0.95]
+    channels: ["email", "slack"]
+    frequency: 1
+  scoringWeights:
+    cost: 0.3
+    quality: 0.3
+    performance: 0.2
+    reliability: 0.2
+
+# Telemetry configuration
+telemetry:
+  logging:
+    level: "info"
+    format: "json"
+    output: "stdout"
+    structured: true
+  metrics:
+    enabled: true
+    endpoint: "/metrics"
+    port: 9090
+    interval: 15
+    prometheus:
+      enabled: true
+      namespace: "federation"
+      labels: {}
+  tracing:
+    enabled: true
+    serviceName: "federation-service"
+    serviceVersion: "1.0.0"
+    sampleRate: 0.1
+
+# Rate limiting configuration
+rateLimiting:
+  enabled: true
+  global:
+    requestsPerSecond: 1000
+    requestsPerMinute: 60000
+    requestsPerHour: 3600000
+    concurrentRequests: 500
+  perClient:
+    defaultLimits:
+      requestsPerSecond: 10
+      requestsPerMinute: 600
+      requestsPerHour: 36000
+    tierLimits:
+      free:
+        requestsPerSecond: 5
+        requestsPerMinute: 300
+        requestsPerHour: 18000
+      professional:
+        requestsPerSecond: 50
+        requestsPerMinute: 3000
+        requestsPerHour: 180000
+      enterprise:
+        requestsPerSecond: 200
+        requestsPerMinute: 12000
+        requestsPerHour: 720000
+  storage: "redis"
+
+# Feature flags
+features:
+  schemaTranslation: true
+  costOptimization: true
+  advancedAnalytics: false
+  abTesting: false
+  experimentalFeatures: false
+
+# Environment setting
+environment: "development"

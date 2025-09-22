@@ -1,0 +1,192 @@
+[package]
+name = "test-database-service"
+version = "1.0.0"
+edition = "2021"
+authors = ["AI-CORE Testing Team <testing@ai-core.dev>"]
+description = "Test database setup and management service for AI-CORE testing infrastructure"
+license = "MIT"
+repository = "https://github.com/ai-core/ai-core"
+keywords = ["testing", "database", "postgresql", "clickhouse", "mongodb", "redis"]
+categories = ["development-tools", "database"]
+
+[dependencies]
+# Web framework and async runtime
+axum = { version = "0.7", features = ["macros", "json", "query"] }
+tokio = { version = "1.0", features = ["full"] }
+tower = { version = "0.4", features = ["util", "timeout", "load-shed", "limit"] }
+tower-http = { version = "0.5", features = ["fs", "trace", "cors", "compression-gzip"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Serialization and JSON handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Database drivers and connection management
+sqlx = { version = "0.7", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "json",
+    "migrate"
+] }
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+mongodb = { version = "2.7", features = ["tokio-runtime"] }
+
+# ClickHouse client
+clickhouse = { version = "0.11", features = ["uuid", "time"] }
+
+# Date and time handling
+chrono = { version = "0.4", features = ["serde"] }
+time = "0.3"
+
+# Configuration management
+config = "0.14"
+dotenvy = "0.15"
+
+# Error handling and logging
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+# HTTP client for external API calls
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Validation and security
+validator = { version = "0.18", features = ["derive"] }
+bcrypt = "0.15"
+jsonwebtoken = "9.0"
+
+# Metrics and observability
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+opentelemetry = "0.21"
+opentelemetry-jaeger = "0.20"
+tracing-opentelemetry = "0.22"
+
+# Template engine for SQL generation
+handlebars = "4.5"
+liquid = "0.26"
+
+# Command line interface
+clap = { version = "4.4", features = ["derive", "env"] }
+
+# Testing utilities
+fake = { version = "2.9", features = ["derive", "chrono", "uuid"] }
+rand = "0.8"
+
+# Development dependencies
+[dev-dependencies]
+tokio-test = "0.4"
+axum-test = "14.0"
+testcontainers = "0.15"
+testcontainers-modules = { version = "0.3", features = ["postgres", "redis"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+
+# Workspace configuration
+[workspace]
+resolver = "2"
+
+# Performance optimizations
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+
+# Benchmark profile
+[profile.bench]
+opt-level = 3
+lto = true
+codegen-units = 1
+debug = false
+
+# Binary targets
+[[bin]]
+name = "test-database-service"
+path = "src/main.rs"
+
+[[bin]]
+name = "database-migrator"
+path = "src/bin/migrator.rs"
+
+[[bin]]
+name = "data-seeder"
+path = "src/bin/seeder.rs"
+
+[[bin]]
+name = "schema-validator"
+path = "src/bin/validator.rs"
+
+# Benchmark targets
+[[bench]]
+name = "database_operations"
+harness = false
+
+[[bench]]
+name = "connection_pool"
+harness = false
+
+# Example targets
+[[example]]
+name = "setup_test_environment"
+path = "examples/setup_environment.rs"
+
+[[example]]
+name = "seed_test_data"
+path = "examples/seed_data.rs"
+
+# Feature flags
+[features]
+default = ["postgresql", "redis"]
+
+# Database support features
+postgresql = ["sqlx/postgres"]
+clickhouse-support = ["clickhouse"]
+mongodb-support = ["mongodb"]
+redis-support = ["redis"]
+
+# Advanced features
+ai-optimization = ["reqwest"]
+performance-monitoring = ["metrics", "metrics-exporter-prometheus"]
+distributed-tracing = ["opentelemetry", "opentelemetry-jaeger", "tracing-opentelemetry"]
+advanced-validation = ["validator"]
+test-data-generation = ["fake", "rand"]
+migration-support = ["sqlx/migrate"]
+
+# Security features
+encryption = ["bcrypt"]
+jwt-auth = ["jsonwebtoken"]
+
+# Development features
+dev-tools = ["testcontainers", "testcontainers-modules"]
+benchmarks = ["criterion"]
+property-testing = ["proptest"]
+
+# Platform-specific configurations
+[target.'cfg(windows)'.dependencies]
+winapi = "0.3"
+
+[target.'cfg(unix)'.dependencies]
+nix = "0.27"
+
+# Documentation configuration
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# Cargo metadata
+[package.metadata.release]
+pre-release-commit-message = "chore: Release test-database-service {{version}}"
+tag-message = "test-database-service {{version}}"
+tag-prefix = "test-db-v"

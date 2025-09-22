@@ -1,0 +1,430 @@
+# AI-PLATFORM Testing Infrastructure - Kubernetes Namespace
+# Version: 1.0
+# Created: 2025-01-11
+# Status: ACTIVE - Implementation Phase
+# Architect: architect_agent
+# Classification: P0 Critical Path Foundation
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: testing-infrastructure
+    app.kubernetes.io/part-of: AI-PLATFORM
+    app.kubernetes.io/managed-by: kubectl
+    environment: testing
+    tier: infrastructure
+  annotations:
+    description: "AI-PLATFORM comprehensive testing infrastructure namespace"
+    team: "testing-team"
+    contact: "testing@AI-PLATFORM.dev"
+    cost-center: "engineering"
+    compliance: "soc2,gdpr"
+
+---
+# Resource Quota for the testing namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: testing-resource-quota
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: resource-management
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+
+    # Storage resources
+    requests.storage: 100Gi
+    persistentvolumeclaims: "10"
+
+    # Object counts
+    pods: "50"
+    replicationcontrollers: "20"
+    resourcequotas: "1"
+    secrets: "20"
+    configmaps: "20"
+    services: "20"
+    services.loadbalancers: "2"
+    services.nodeports: "5"
+
+    # Network resources
+    count/ingresses.extensions: "5"
+
+---
+# Limit Range for pods in the testing namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: testing-limit-range
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: resource-management
+spec:
+  limits:
+  # Default limits for containers
+  - default:
+      cpu: "1"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "256Mi"
+    type: Container
+
+  # Limits for pods
+  - max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "50m"
+      memory: "128Mi"
+    type: Pod
+
+  # Limits for persistent volume claims
+  - max:
+      storage: "50Gi"
+    min:
+      storage: "1Gi"
+    type: PersistentVolumeClaim
+
+---
+# Network Policy for testing namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: testing-network-policy
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow ingress from same namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: AI-PLATFORM-testing
+
+  # Allow ingress from monitoring namespace (if exists)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+
+  # Allow ingress from ingress controllers
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+
+  egress:
+  # Allow egress to same namespace
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: AI-PLATFORM-testing
+
+  # Allow egress to system namespaces
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+
+  # Allow egress to DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+  # Allow egress to external services (HTTP/HTTPS)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+
+---
+# Service Account for testing services
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: AI-PLATFORM-testing-sa
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: security
+  annotations:
+    description: "Service account for AI-PLATFORM testing services"
+automountServiceAccountToken: true
+
+---
+# ClusterRole for testing services (if needed for cluster-wide operations)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: AI-PLATFORM-testing-cluster-role
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: security
+rules:
+# Read-only access to nodes for environment validation
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+
+# Access to metrics for performance testing
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+
+---
+# Role for namespace-specific operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: AI-PLATFORM-testing-role
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: security
+rules:
+# Full access to testing namespace resources
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["*"]
+
+# Access to deployments, replicasets, etc.
+- apiGroups: ["apps"]
+  resources: ["*"]
+  verbs: ["*"]
+
+# Access to ingresses
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+# Access to horizontal pod autoscalers
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+---
+# ClusterRoleBinding for cluster-wide permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: AI-PLATFORM-testing-cluster-binding
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: security
+subjects:
+- kind: ServiceAccount
+  name: AI-PLATFORM-testing-sa
+  namespace: AI-PLATFORM-testing
+roleRef:
+  kind: ClusterRole
+  name: AI-PLATFORM-testing-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# RoleBinding for namespace-specific permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: AI-PLATFORM-testing-binding
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: security
+subjects:
+- kind: ServiceAccount
+  name: AI-PLATFORM-testing-sa
+  namespace: AI-PLATFORM-testing
+roleRef:
+  kind: Role
+  name: AI-PLATFORM-testing-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Priority Class for testing workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: AI-PLATFORM-testing-priority
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: scheduling
+value: 100
+globalDefault: false
+description: "Priority class for AI-PLATFORM testing workloads"
+
+---
+# Pod Disruption Budget for critical testing services
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: testing-services-pdb
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: availability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      tier: critical
+      app.kubernetes.io/part-of: AI-PLATFORM-testing
+
+---
+# ConfigMap for common testing configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: testing-config
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: configuration
+data:
+  # Environment configuration
+  ENVIRONMENT: "testing"
+  LOG_LEVEL: "info"
+
+  # Database configuration
+  POSTGRES_HOST: "postgresql-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DATABASE: "ai_core_test"
+
+  CLICKHOUSE_HOST: "clickhouse-service"
+  CLICKHOUSE_PORT: "8123"
+  CLICKHOUSE_DATABASE: "test_analytics"
+
+  MONGODB_HOST: "mongodb-service"
+  MONGODB_PORT: "27017"
+  MONGODB_DATABASE: "test_documents"
+
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+
+  # Kafka configuration
+  KAFKA_BROKERS: "kafka-service:9092"
+
+  # Service URLs
+  TEST_COORDINATOR_URL: "http://test-coordinator-service:8100"
+  PLAYWRIGHT_SERVICE_URL: "http://playwright-service:8101"
+  API_TEST_SERVICE_URL: "http://api-test-service:8102"
+  PERFORMANCE_SERVICE_URL: "http://performance-service:8103"
+
+  # Testing configuration
+  MAX_PARALLEL_TESTS: "10"
+  TEST_TIMEOUT: "300000"
+  RETRY_COUNT: "2"
+
+  # Observability configuration
+  PROMETHEUS_URL: "http://prometheus-service:9090"
+  JAEGER_ENDPOINT: "http://jaeger-service:14268"
+
+  # Feature flags
+  ENABLE_AI_TESTING: "true"
+  ENABLE_CHAOS_ENGINEERING: "true"
+  ENABLE_VISUAL_REGRESSION: "true"
+
+---
+# Secret for sensitive testing configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: testing-secrets
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: security
+type: Opaque
+data:
+  # Database passwords (base64 encoded)
+  POSTGRES_PASSWORD: dGVzdF9wYXNzd29yZA==  # test_password
+  CLICKHOUSE_PASSWORD: dGVzdF9wYXNzd29yZA==  # test_password
+  MONGODB_PASSWORD: dGVzdF9wYXNzd29yZA==  # test_password
+  REDIS_PASSWORD: dGVzdF9wYXNzd29yZA==  # test_password
+
+  # API keys and tokens
+  OPENAI_API_KEY: ""  # To be set during deployment
+  GITHUB_TOKEN: ""    # For repository access if needed
+  SLACK_WEBHOOK_URL: ""  # For notifications
+
+  # JWT secrets
+  JWT_SECRET: c3VwZXJfc2VjcmV0X2p3dF9rZXkh  # super_secret_jwt_key!
+
+  # MinIO credentials
+  MINIO_ROOT_USER: bWluaW9hZG1pbg==  # minioadmin
+  MINIO_ROOT_PASSWORD: bWluaW9hZG1pbjEyMw==  # minioadmin123
+
+---
+# Horizontal Pod Autoscaler for testing services (template)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: testing-services-hpa
+  namespace: AI-PLATFORM-testing
+  labels:
+    app.kubernetes.io/name: AI-PLATFORM-testing
+    app.kubernetes.io/component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: test-coordinator
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+      selectPolicy: Min

@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT service_name, slo_name, budget_percentage, consumed_percentage,\n                   remaining_percentage, time_window, last_updated, burn_rate, status\n            FROM error_budgets\n            WHERE service_name = $1 AND time_window = $2\n            ORDER BY last_updated DESC\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "slo_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "budget_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "consumed_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "remaining_percentage",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "time_window",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_updated",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "burn_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "da20b7bdbaad6539864d05298355a85b9cdd03c95791932a3e90b19f0c9cc089"
+}

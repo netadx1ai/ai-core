@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-CORE Real-Time Demo Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            text-align: center;
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 15px;
+        }
+
+        .header-stat {
+            text-align: center;
+        }
+
+        .header-stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .header-stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .service-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid #ecf0f1;
+            transition: all 0.3s ease;
+        }
+
+        .service-card.healthy {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #27ae6020, #2ecc7120);
+        }
+
+        .service-card.warning {
+            border-color: #f39c12;
+            background: linear-gradient(135deg, #f39c1220, #e67e2220);
+        }
+
+        .service-card.error {
+            border-color: #e74c3c;
+            background: linear-gradient(135deg, #e74c3c20, #c0392b20);
+        }
+
+        .service-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .service-status {
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .service-status.healthy {
+            background: #27ae60;
+        }
+
+        .service-status.warning {
+            background: #f39c12;
+        }
+
+        .service-status.error {
+            background: #e74c3c;
+        }
+
+        .service-metrics {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+
+        .workflow-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .workflow-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .workflow-item.completed {
+            border-left-color: #27ae60;
+        }
+
+        .workflow-item.running {
+            border-left-color: #f39c12;
+            animation: pulse-border 2s infinite;
+        }
+
+        .workflow-item.failed {
+            border-left-color: #e74c3c;
+        }
+
+        @keyframes pulse-border {
+            0% { border-left-width: 4px; }
+            50% { border-left-width: 8px; }
+            100% { border-left-width: 4px; }
+        }
+
+        .workflow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .workflow-title {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .workflow-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .workflow-status.completed {
+            background: #27ae60;
+            color: white;
+        }
+
+        .workflow-status.running {
+            background: #f39c12;
+            color: white;
+        }
+
+        .workflow-status.failed {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .workflow-progress {
+            width: 100%;
+            height: 4px;
+            background: #ecf0f1;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .workflow-progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            transition: width 0.5s ease;
+        }
+
+        .workflow-meta {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .metrics-panel {
+            grid-column: 1 / -1;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #ecf0f1;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            transform: translateX(-100%);
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .metric-change {
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .metric-change.positive {
+            color: #27ae60;
+        }
+
+        .metric-change.negative {
+            color: #e74c3c;
+        }
+
+        .live-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 0.8em;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+            z-index: 1000;
+        }
+
+        .live-indicator::before {
+            content: '●';
+            animation: blink 1s infinite;
+            margin-right: 5px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .chart-container {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-line {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            height: 2px;
+            background: linear-gradient(to right, #3498db, #2980b9);
+            animation: draw-line 3s ease-in-out infinite;
+        }
+
+        @keyframes draw-line {
+            0% { width: 0; }
+            50% { width: 100%; }
+            100% { width: 100%; }
+        }
+
+        .chart-points {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 170px;
+        }
+
+        .chart-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3498db;
+            border-radius: 50%;
+            animation: pulse-point 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-point {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+
+        .demo-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .alert-banner {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slide-down 0.5s ease;
+        }
+
+        .alert-banner.show {
+            display: block;
+        }
+
+        @keyframes slide-down {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="live-indicator">
+        LIVE DEMO
+    </div>
+
+    <div class="alert-banner" id="alertBanner">
+        🚨 System Alert: Federation service experiencing high latency
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AI-CORE Real-Time Monitoring Dashboard</h1>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <div class="header-stat-value" id="uptime">99.8%</div>
+                    <div class="header-stat-label">System Uptime</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value" id="totalRequests">15,247</div>
+                    <div class="header-stat-label">Total Requests</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value" id="avgLatency">920ms</div>
+                    <div class="header-stat-label">Avg Latency</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="panel">
+                <h2 class="panel-title">
+                    <span>🔧</span>
+                    MCP Services Health
+                </h2>
+                <div class="service-grid" id="serviceGrid">
+                    <!-- Services will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">
+                    <span>⚡</span>
+                    Active Workflows
+                </h2>
+                <div class="workflow-list" id="workflowList">
+                    <!-- Workflows will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="panel metrics-panel">
+            <h2 class="panel-title">
+                <span>📊</span>
+                Performance Metrics
+            </h2>
+            <div class="metrics-grid" id="metricsGrid">
+                <!-- Metrics will be populated by JavaScript -->
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-points" id="chartPoints"></div>
+                <div class="chart-line"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-controls">
+        <button class="demo-btn" onclick="simulateWorkflow()">▶️ Start Demo Workflow</button>
+        <button class="demo-btn" onclick="simulateAlert()">⚠️ Trigger Alert</button>
+        <button class="demo-btn" onclick="resetDemo()">🔄 Reset Demo</button>
+    </div>
+
+    <script>
+        // Demo data and state
+        let services = [
+            { name: 'API Gateway', status: 'healthy', latency: '245ms', uptime: '99.9%' },
+            { name: 'Federation', status: 'healthy', latency: '180ms', uptime: '99.8%' },
+            { name: 'Intent Parser', status: 'healthy', latency: '320ms', uptime: '99.7%' },
+            { name: 'MCP Manager', status: 'healthy', latency: '150ms', uptime: '99.9%' },
+            { name: 'Content MCP', status: 'healthy', latency: '890ms', uptime: '99.5%' },
+            { name: 'Image MCP', status: 'warning', latency: '1.2s', uptime: '98.9%' },
+            { name: 'Calendar MCP', status: 'healthy', latency: '450ms', uptime: '99.6%' },
+            { name: 'Social MCP', status: 'healthy', latency: '380ms', uptime: '99.4%' }
+        ];
+
+        let workflows = [
+            { id: 'wf_001', title: 'Blog Post Campaign', status: 'running', progress: 65, duration: '32s', type: 'blog-post-social' },
+            { id: 'wf_002', title: 'SEO Content Creation', status: 'completed', progress: 100, duration: '48s', type: 'seo-optimized' },
+            { id: 'wf_003', title: 'Social Media Campaign', status: 'running', progress: 25, duration: '12s', type: 'scheduled-content' },
+            { id: 'wf_004', title: 'Newsletter Generation', status: 'completed', progress: 100, duration: '65s', type: 'newsletter' },
+            { id: 'wf_005', title: 'Product Launch Content', status: 'failed', progress: 80, duration: '35s', type: 'blog-post-social' }
+        ];
+
+        let metrics = [
+            { label: 'Active Workflows', value: '8', change: '+12%', type: 'positive' },
+            { label: 'Success Rate', value: '86.7%', change: '+2.1%', type: 'positive' },
+            { label: 'Avg Duration', value: '43s', change: '-5s', type: 'positive' },
+            { label: 'Throughput', value: '12.5/min', change: '+1.8', type: 'positive' },
+            { label: 'Error Rate', value: '2.3%', change: '-0.5%', type: 'positive' },
+            { label: 'Cost per Workflow', value: '$0.15', change: '-$0.03', type: 'positive' }
+        ];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            renderServices();
+            renderWorkflows();
+            renderMetrics();
+            renderChart();
+            startRealTimeUpdates();
+        });
+
+        function renderServices() {
+            const grid = document.getElementById('serviceGrid');
+            grid.innerHTML = services.map(service => `
+                <div class="service-card ${service.status}">
+                    <div class="service-name">${service.name}</div>
+                    <div class="service-status ${service.status}">
+                        ${service.status.toUpperCase()}
+                    </div>
+                    <div class="service-metrics">
+                        Latency: ${service.latency}<br>
+                        Uptime: ${service.uptime}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderWorkflows() {
+            const list = document.getElementById('workflowList');
+            list.innerHTML = workflows.map(workflow => `
+                <div class="workflow-item ${workflow.status}">
+                    <div class="workflow-header">
+                        <div class="workflow-title">${workflow.title}</div>
+                        <div class="workflow-status ${workflow.status}">${workflow.status}</div>
+                    </div>
+                    <div class="workflow-progress">
+                        <div class="workflow-progress-fill" style="width: ${workflow.progress}%"></div>
+                    </div>
+                    <div class="workflow-meta">
+                        <span>ID: ${workflow.id}</span>
+                        <span>Duration: ${workflow.duration}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderMetrics() {
+            const grid = document.getElementById('metricsGrid');
+            grid.innerHTML = metrics.map(metric => `
+                <div class="metric-card">
+                    <div class="metric-value">${metric.value}</div>
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-change ${metric.type}">${metric.change}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderChart() {
+            const container = document.getElementById('chartPoints');
+            const points = 20;
+
+            for (let i = 0; i < points; i++) {
+                const point = document.createElement('div');
+                point.className = 'chart-point';
+                point.style.left = (i * (100 / points)) + '%';
+                point.style.bottom = (Math.random() * 80 + 20) + 'px';
+                point.style.animationDelay = (i * 0.1) + 's';
+                container.appendChild(point);
+            }
+        }
+
+        function startRealTimeUpdates() {
+            setInterval(updateMetrics, 3000);
+            setInterval(updateWorkflows, 5000);
+            setInterval(updateServices, 7000);
+            setInterval(updateHeaderStats, 2000);
+        }
+
+        function updateMetrics() {
+            metrics.forEach(metric => {
+                if (metric.label === 'Active Workflows') {
+                    metric.value = Math.floor(Math.random() * 5) + 6;
+                } else if (metric.label === 'Throughput') {
+                    metric.value = (Math.random() * 3 + 11).toFixed(1) + '/min';
+                }
+            });
+            renderMetrics();
+        }
+
+        function updateWorkflows() {
+            workflows.forEach(workflow => {
+                if (workflow.status === 'running') {
+                    workflow.progress = Math.min(workflow.progress + Math.random() * 15, 100);
+                    if (workflow.progress >= 100) {
+                        workflow.status = 'completed';
+                    }
+                }
+            });
+            renderWorkflows();
+        }
+
+        function updateServices() {
+            services.forEach(service => {
+                if (Math.random() < 0.1) {
+                    service.latency = Math.floor(Math.random() * 500 + 200) + 'ms';
+                }
+            });
+            renderServices();
+        }
+
+        function updateHeaderStats() {
+            const totalRequests = document.getElementById('totalRequests');
+            const currentCount = parseInt(totalRequests.textContent.replace(',', ''));
+            totalRequests.textContent = (currentCount + Math.floor(Math.random() * 10)).toLocaleString();
+
+            const avgLatency = document.getElementById('avgLatency');
+            const latency = Math.floor(Math.random() * 200) + 800;
+            avgLatency.textContent = latency + 'ms';
+        }
+
+        function simulateWorkflow() {
+            const newWorkflow = {
+                id: 'wf_' + Math.random().toString(36).substr(2, 6),
+                title: 'Demo Workflow ' + Math.floor(Math.random() * 1000),
+                status: 'running',
+                progress: 0,
+                duration: '0s',
+                type: 'demo'
+            };
+
+            workflows.unshift(newWorkflow);
+            renderWorkflows();
+
+            // Animate progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                newWorkflow.progress = Math.min(progress, 100);
+                newWorkflow.duration = Math.floor(progress / 2) + 's';
+
+                if (progress >= 100) {
+                    newWorkflow.status = 'completed';
+                    clearInterval(interval);
+                }
+
+                renderWorkflows();
+            }, 1000);
+        }
+
+        function simulateAlert() {
+            const alertBanner = document.getElementById('alertBanner');
+            alertBanner.classList.add('show');
+
+            // Update a service to warning status
+            const service = services.find(s => s.name === 'Federation');
+            service.status = 'warning';
+            service.latency = '2.1s';
+            renderServices();
+
+            setTimeout(() => {
+                alertBanner.classList.remove('show');
+                service.status = 'healthy';
+                service.latency = '180ms';
+                renderServices();
+            }, 5000);
+        }
+
+        function resetDemo() {
+            // Reset all services to healthy
+            services.forEach(service => {
+                service.status = 'healthy';
+                service.latency = Math.floor(Math.random() * 300 + 150) + 'ms';
+            });
+
+            // Reset workflows
+            workflows.forEach(workflow => {
+                if (workflow.status === 'running') {
+                    workflow.status = 'completed';
+                    workflow.progress = 100;
+                }
+            });
+
+            // Hide alert
+            document.getElementById('alertBanner').classList.remove('show');
+
+            renderServices();
+            renderWorkflows();
+        }
+
+        // Keyboard shortcuts for demo
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '1') simulateWorkflow();
+            if (e.key === '2') simulateAlert();
+            if (e.key === '3') resetDemo();
+        });
+    </script>
+</body>
+</html>

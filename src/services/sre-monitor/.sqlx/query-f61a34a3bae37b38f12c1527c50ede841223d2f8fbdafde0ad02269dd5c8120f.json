@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT s.service_name, s.name as slo_name,\n                           AVG(CASE WHEN sc.compliance THEN 100.0 ELSE 0.0 END) as compliance_percentage\n                    FROM slos s\n                    LEFT JOIN slo_calculations sc ON s.id = sc.slo_id\n                        AND sc.calculated_at > NOW() - INTERVAL '7 days'\n                    WHERE s.status = 'active'\n                    GROUP BY s.service_name, s.name\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "service_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "slo_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "compliance_percentage",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f61a34a3bae37b38f12c1527c50ede841223d2f8fbdafde0ad02269dd5c8120f"
+}
